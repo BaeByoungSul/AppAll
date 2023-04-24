@@ -1,38 +1,33 @@
-﻿using System.Data;
-using System.Xml.Serialization;
-using System.Xml;
-using Microsoft.Data.SqlClient;
-using Oracle.ManagedDataAccess.Client;
-using MySql.Data.MySqlClient;
-using System.Transactions;
-//using Newtonsoft.Json;
+﻿using Microsoft.Data.SqlClient;
 using Models.Database;
-using Microsoft.AspNetCore.JsonPatch.Internal;
-using Swashbuckle.AspNetCore.SwaggerGen;
-using System.Data.Common;
-using System.Diagnostics.Eventing.Reader;
-using Microsoft.Extensions.FileSystemGlobbing.Internal.PatternContexts;
-using System.Windows.Input;
-using System.Configuration.Provider;
-using System.Reflection.PortableExecutable;
+using MySql.Data.MySqlClient;
+using Oracle.ManagedDataAccess.Client;
+using System.Data;
+using System.Transactions;
+using System.Xml;
 
-namespace Services.DbService    ;
+namespace Services.DbService;
 
-
-/// <summary>
-/// 2022.12.19: 새로 작성
-/// </summary>
 public class DbService : IDbService
 {
+    private List<DBOutPut> OutputList { get; set; } = new();
+
     private readonly List<ConnectDBInfo> _connectInfos;
+    private readonly DataTable _outputDt;
+    private readonly IConfigurationRoot _configuration;
 
-    private List<DBOutPut> OutputList { get; set; } = new ();
-    public DbService( List<ConnectDBInfo> dBInfos)
+    public DbService()
     {
-        _connectInfos = dBInfos;
+       // _connectInfos2 = dBInfos;
+        _configuration = new ConfigurationBuilder()
+            .AddJsonFile(Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json"), optional: false, reloadOnChange: true)
+            .Build();
+        
+        var strSection = "DbConnectInfo";
+        _connectInfos = _configuration.GetSection(strSection).Get<List<ConnectDBInfo>>();
+
+        _outputDt = CreateOutputTable();
     }
-
-
     /// <summary>
     /// 1. DB 연결 생성
     /// 2. DB Command 생성
@@ -41,97 +36,8 @@ public class DbService : IDbService
     /// </summary>
     /// <param name="myCmds"></param>
     /// <returns></returns>
-    public List<DBOutPut> ExecNonQuery(List<MyCommand> myCmds)
+    public MyReturn ExecNonQuery(List<MyCommand> myCmds)
     {
-        // Command명 중복이 있는지 점검
-        int cntCommand = myCmds.Count;
-        int cntCommandName = myCmds.Select(x => x.CommandName).Distinct().Count();
-        if (cntCommand != cntCommandName)
-            throw new InvalidDbException("중복된 Command명이 있습니다.");
-        
-        // Connect명 체크
-        IEnumerable<string> connNames = myCmds.Select(x => x.ConnectionName).Distinct();
-        foreach (var connName in connNames)
-        {
-            if (!IsExistConnectName(connName))
-                throw new InvalidDbException($"연결명이 없습니다.({connName})");
-        }
-        
-        try
-        {
-            using (var scope = new TransactionScope(TransactionScopeOption.RequiresNew))
-            {
-                // db 연결 생성하고 저장
-                var dicConn = new Dictionary<string, IDbConnection>();
-                foreach (var connName in connNames)
-                {
-                    var dbConn = CreateDbConnection(connName);
-                    if (dbConn == null)
-                        throw new InvalidDbException($"DB연결이 되지 않습니다.({connName})");
-                    dbConn.Open();
-                    dicConn.Add(connName, dbConn);
-                }
-
-                // db Command 생성하고 저장
-                var dicCommand = new Dictionary<string, IDbCommand>();
-                foreach (var myCmd in myCmds)
-                {
-                    var dbCmd = CreateDbCommand(myCmd, dicConn[myCmd.ConnectionName]);
-                    dicCommand.Add(myCmd.CommandName, dbCmd);
-                }
-
-                // Parmeter 값을 주고 DB Command를  실행
-                // 한개의 Command를 여러번 실행 할 수 있어야 한다.
-                foreach (KeyValuePair<string, IDbCommand> dbCmdPair in dicCommand)
-                {
-                    string commandName = dbCmdPair.Key;
-                    IDbCommand dbCommand = dbCmdPair.Value;
-
-                    if (commandName == null || dbCommand == null) 
-                        throw new InvalidDbException("Command를 찾을 수 없습니다");
-
-                    if (dbCommand.Parameters.Count <= 0)
-                    {
-                        dbCommand.ExecuteNonQuery();
-                        continue;
-                    }
-
-                    // Parmeter 값을 조회하기 위해서 Mapping되는 MyCommand 찾기
-                    var myCommand = myCmds.Find(x => x.CommandName.Equals(commandName));
-                    if (myCommand == null) 
-                        throw new InvalidDbException("Command를 찾을 수 없습니다.");
-
-                    // 한개의 Command를 여러번 실행한다.
-                    // Parameter value dictionary 개수 많큼 실행
-                    foreach (var valuePairs in myCommand.ParaValues ?? Enumerable.Empty<Dictionary<string, string>>())
-                    {
-                        // parameter값 처리
-                        SetParameterValue(dbCommand, myCommand, valuePairs);
-                        
-                        // 실행
-                        dbCommand.ExecuteNonQuery();
-                        
-                        //output값 저장
-                        SaveOutputValue(dbCommand, commandName);
-                    }
-                }
-                // commit commands
-                scope.Complete();
-            }// end using transactionscope
-        }
-        catch (Exception )
-        {
-            throw;
-           // throw new Exception(ex.Message);
-        }
-
-        return OutputList;
-        
-    }
-    public async Task<List<DBOutPut>> ExecNonQueryAsync(List<MyCommand> myCmds)
-    {
-        
-
         // Command명 중복이 있는지 점검
         int cntCommand = myCmds.Count;
         int cntCommandName = myCmds.Select(x => x.CommandName).Distinct().Count();
@@ -157,6 +63,203 @@ public class DbService : IDbService
         try
         {
             using (var scope = new TransactionScope(TransactionScopeOption.RequiresNew))
+            {
+                // db 연결 생성하고 저장
+                var dicConn = new Dictionary<string, IDbConnection>();
+                string providerName = string.Empty;
+                foreach (var connName in connNames)
+                {
+                    var dbConn = CreateDbConnection(connName, out providerName);
+
+                    if (dbConn == null)
+                        throw new InvalidDbException($"DB연결이 되지 않습니다.({connName})");
+
+                    if (providerName.Equals("Microsoft.Data.SqlClient"))
+                        ((SqlConnection)dbConn).Open();
+                    else if (providerName.Equals("Oracle.ManagedDataAccess.Client"))
+                        ((OracleConnection)dbConn).Open();
+                    else if (providerName.Equals("MySql.Data.MySqlClient"))
+                        ((MySqlConnection)dbConn).Open();
+
+                    dicConn.Add(connName, dbConn);
+                }
+
+                // db Command 생성하고 저장
+                var dicCommand = new Dictionary<string, IDbCommand>();
+                foreach (var myCmd in myCmds)
+                {
+                    var dbCmd = CreateDbCommand(myCmd, dicConn[myCmd.ConnectionName]);
+                    dicCommand.Add(myCmd.CommandName, dbCmd);
+                }
+
+                // Parmeter 값을 주고 DB Command를  실행
+                // 한개의 Command를 여러번 실행 할 수 있어야 한다.
+                foreach (KeyValuePair<string, IDbCommand> dbCmdPair in dicCommand)
+                {
+                    string commandName = dbCmdPair.Key;
+                    IDbCommand dbCommand = dbCmdPair.Value;
+
+                    if (commandName == null || dbCommand == null)
+                        throw new InvalidDbException("Command를 찾을 수 없습니다");
+
+                    // D/B command parameter가 없어면 바로 실행
+                    if (dbCommand.Parameters.Count <= 0)
+                    {
+                        if (myCmdDB[commandName].Equals("Microsoft.Data.SqlClient"))
+                            ((SqlCommand)dbCommand).ExecuteNonQuery();
+                        else if (myCmdDB[commandName].Equals("Oracle.ManagedDataAccess.Client"))
+                            ((OracleCommand)dbCommand).ExecuteNonQuery();
+                        else if (myCmdDB[commandName].Equals("MySql.Data.MySqlClient"))
+                            ((MySqlCommand)dbCommand).ExecuteNonQuery();
+
+                        continue;
+                    }
+
+                    // MyCommand 찾기
+                    var myCommand = myCmds.Find(x => x.CommandName.Equals(commandName));
+                    if (myCommand == null)
+                        throw new InvalidDbException("Command를 찾을 수 없습니다.");
+
+                    // MyCommand 파라미터을 참조하여 D/B Command를 여러번 실행한다.
+                    // Parameter value dictionary 개수 많큼 실행
+                    foreach (var valuePairs in myCommand.ParaValues ?? Enumerable.Empty<Dictionary<string, string>>())
+                    {
+                        // parameter값 처리
+                        SetParameterValue(dbCommand, myCommand, valuePairs);
+
+                        // 실행
+                        dbCommand.ExecuteNonQuery();
+
+
+                        //output값 저장
+                        SaveOutputValue(dbCommand, commandName);
+                    }
+                }
+                // commit commands
+                scope.Complete();
+            }// end using transactionscope
+        }
+        catch (Exception ex)
+        {
+            throw new FaultException(ex.ToString());
+        }
+
+        StringWriter writer = new();
+        _outputDt.WriteXml(writer, XmlWriteMode.WriteSchema);
+
+        XmlDocument doc = new()
+        {
+            InnerXml = writer.ToString()
+        };
+
+        var rtn = new MyReturn()
+        {
+            ReturnCD = "S",
+            ReturnMsg = "Success",
+            RtnBody = doc.DocumentElement
+        };
+        return rtn;
+
+        //  return OutputList;
+    }
+    public MyReturn GetDataSet(MyCommand myCmd)
+    {
+        try
+        {
+            string providerName;
+            var dbConn = CreateDbConnection(myCmd.ConnectionName, out providerName);
+            if (dbConn == null)
+                throw new InvalidDbException("D/B 연결이 null 입니다.");
+
+            if (providerName.Equals("Microsoft.Data.SqlClient"))
+                ((SqlConnection)dbConn).Open();
+            else if (providerName.Equals("Oracle.ManagedDataAccess.Client"))
+                ((OracleConnection)dbConn).Open();
+            else if (providerName.Equals("MySql.Data.MySqlClient"))
+                ((MySqlConnection)dbConn).Open();
+
+            var dbCommand = CreateDbCommand(myCmd, dbConn);
+            if (dbCommand == null)
+                throw new InvalidDbException("Create DB Command Fail.");
+
+            Dictionary<string, string>? paraValuePair = myCmd.ParaValues?.FirstOrDefault();
+
+            // parameter값 처리
+            if (paraValuePair != null)
+                SetParameterValue(dbCommand, myCmd, paraValuePair);
+
+            // DB Adapter
+            IDataAdapter? dbAdapter = CreateDbAdapter(dbCommand, myCmd.ConnectionName);
+            if (dbAdapter == null)
+                throw new InvalidDbException("Create DB Adapter Fail.");
+            // DB Command exec 
+            DataSet? ds = new("Result_Ds");
+            dbAdapter.Fill(ds);
+
+            StringWriter writer = new();
+            ds.WriteXml(writer, XmlWriteMode.WriteSchema);
+
+            XmlDocument doc = new()
+            {
+                InnerXml = writer.ToString()
+            };
+
+            var rtn = new MyReturn()
+            {
+                ReturnCD = "S",
+                ReturnMsg = "Success",
+                RtnBody = doc.DocumentElement
+            };
+            return rtn;
+        }
+        catch (InvalidDbException ex)
+        {
+            return new MyReturn()
+            {
+                //RtnHeader = rtnHeader,
+                ReturnCD = "F",
+                ReturnMsg = ex.Message,
+                RtnBody = null
+            };
+        }
+        catch (Exception ex) { throw new FaultException(ex.ToString()); }
+
+    }
+
+
+    /// <summary>
+    /// TransactionScopeAsyncFlowOption.Enabled 추가함 
+    /// </summary>
+    /// <param name="myCmds"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidDbException"></exception>
+    public async Task<MyReturn> ExecNonQueryA(List<MyCommand> myCmds)
+    {
+        // Command명 중복이 있는지 점검
+        int cntCommand = myCmds.Count;
+        int cntCommandName = myCmds.Select(x => x.CommandName).Distinct().Count();
+        if (cntCommand != cntCommandName)
+            throw new InvalidDbException("중복된 Command명이 있습니다.");
+
+        // Connect명 체크
+        IEnumerable<string> connNames = myCmds.Select(x => x.ConnectionName).Distinct();
+        foreach (var connName in connNames)
+        {
+            if (!IsExistConnectName(connName))
+                throw new InvalidDbException($"연결명이 없습니다.({connName})");
+        }
+
+        // MyCommand 명 별 DB종류 
+        Dictionary<string, string> myCmdDB = new Dictionary<string, string>();
+        foreach (var cmd in myCmds)
+        {
+            var connInfo = _connectInfos.Find(x => x.ConnectionName == cmd.ConnectionName);
+            if (connInfo == null) throw new InvalidDbException($"연결명이 없습니다.({cmd.ConnectionName})");
+            myCmdDB.Add(cmd.CommandName, connInfo.ProviderName);
+        }
+        try
+        {
+            using (var scope = new TransactionScope(TransactionScopeOption.RequiresNew,  TransactionScopeAsyncFlowOption.Enabled))
             {
                 // db 연결 생성하고 저장
                 var dicConn = new Dictionary<string, IDbConnection>();
@@ -200,11 +303,11 @@ public class DbService : IDbService
                     if (dbCommand.Parameters.Count <= 0)
                     {
                         if (myCmdDB[commandName].Equals("Microsoft.Data.SqlClient"))
-                            await ((SqlCommand)dbCommand).ExecuteNonQueryAsync();
+                           await ((SqlCommand)dbCommand).ExecuteNonQueryAsync();
                         else if (myCmdDB[commandName].Equals("Oracle.ManagedDataAccess.Client"))
-                            await ((OracleCommand)dbCommand).ExecuteNonQueryAsync();
+                           await ((OracleCommand)dbCommand).ExecuteNonQueryAsync();
                         else if (myCmdDB[commandName].Equals("MySql.Data.MySqlClient"))
-                            await ((MySqlCommand)dbCommand).ExecuteNonQueryAsync();
+                           await ((MySqlCommand)dbCommand).ExecuteNonQueryAsync();
 
                         continue;
                     }
@@ -229,7 +332,7 @@ public class DbService : IDbService
                             await ((OracleCommand)dbCommand).ExecuteNonQueryAsync();
                         else if (myCmdDB[commandName].Equals("MySql.Data.MySqlClient"))
                             await ((MySqlCommand)dbCommand).ExecuteNonQueryAsync();
-
+                        
                         //output값 저장
                         SaveOutputValue(dbCommand, commandName);
                     }
@@ -238,24 +341,55 @@ public class DbService : IDbService
                 scope.Complete();
             }// end using transactionscope
         }
-        catch (Exception)
+        catch (InvalidDbException ex)
         {
-            throw;
-            // throw new Exception(ex.Message);
+            return new MyReturn()
+            {
+                //RtnHeader = rtnHeader,
+                ReturnCD = "F",
+                ReturnMsg = ex.Message,
+                RtnBody = null
+            };
+        }
+        catch (Exception ex)
+        {
+            throw new FaultException(ex.ToString());
         }
 
-        return OutputList;
+        StringWriter writer = new();
+        _outputDt.WriteXml(writer, XmlWriteMode.WriteSchema);
+
+        XmlDocument doc = new()
+        {
+            InnerXml = writer.ToString()
+        };
+
+        var rtn = new MyReturn()
+        {
+            ReturnCD = "S",
+            ReturnMsg = "Success",
+            RtnBody = doc.DocumentElement
+        };
+        return rtn;
 
     }
-    public DataSet GetDataSet(MyCommand myCmd)
+
+    public async Task<MyReturn> GetDataSetA(MyCommand myCmd)
     {
         try
         {
-            var dbConn = CreateDbConnection(myCmd.ConnectionName);
+            string providerName;
+            var dbConn = CreateDbConnection(myCmd.ConnectionName, out providerName);
             if (dbConn == null)
                 throw new InvalidDbException("D/B 연결이 null 입니다.");
 
-            dbConn.Open();
+            if (providerName.Equals("Microsoft.Data.SqlClient"))
+                await ((SqlConnection)dbConn).OpenAsync();
+            else if (providerName.Equals("Oracle.ManagedDataAccess.Client"))
+                await ((OracleConnection)dbConn).OpenAsync();
+            else if (providerName.Equals("MySql.Data.MySqlClient"))
+                await ((MySqlConnection)dbConn).OpenAsync();
+
             var dbCommand = CreateDbCommand(myCmd, dbConn);
             if (dbCommand == null)
                 throw new InvalidDbException("Create DB Command Fail.");
@@ -270,26 +404,47 @@ public class DbService : IDbService
             IDataAdapter? dbAdapter = CreateDbAdapter(dbCommand, myCmd.ConnectionName);
             if (dbAdapter == null)
                 throw new InvalidDbException("Create DB Adapter Fail.");
-
             // DB Command exec 
             DataSet? ds = new("Result_Ds");
-            dbAdapter.Fill(ds);
+            await Task.Run(() => dbAdapter.Fill(ds));
 
-            return ds;
+            StringWriter writer = new();
+            ds.WriteXml(writer, XmlWriteMode.WriteSchema);
+
+            XmlDocument doc = new()
+            {
+                InnerXml = writer.ToString()
+            };
+
+            var rtn = new MyReturn()
+            {
+                ReturnCD = "S",
+                ReturnMsg = "Success",
+                RtnBody = doc.DocumentElement
+            };
+            return rtn;
         }
-        catch (Exception)
+        catch (InvalidDbException ex)
         {
-            throw;
+            return new MyReturn()
+            {
+                //RtnHeader = rtnHeader,
+                ReturnCD = "F",
+                ReturnMsg = ex.Message,
+                RtnBody = null
+            };
         }
-        
+        catch (Exception ex) { throw new FaultException(ex.ToString()); }
+
     }
-    public async Task<DataSet> GetDataSetAsync(MyCommand myCmd)
+
+    public async Task<MyReturn> GetDataSetAsync2(MyCommand myCmd)
     {
         try
         {
-            string providerName; 
+            string providerName;
             var dbConn = CreateDbConnection(myCmd.ConnectionName, out providerName);
-            if (dbConn == null) 
+            if (dbConn == null)
                 throw new InvalidDbException("D/B 연결이 null 입니다.");
 
             if (providerName.Equals("Microsoft.Data.SqlClient"))
@@ -300,9 +455,9 @@ public class DbService : IDbService
                 await ((MySqlConnection)dbConn).OpenAsync();
 
             var dbCommand = CreateDbCommand(myCmd, dbConn);
-            if (dbCommand == null) 
+            if (dbCommand == null)
                 throw new InvalidDbException("Create DB Command Fail.");
-            
+
             Dictionary<string, string>? paraValuePair = myCmd.ParaValues?.FirstOrDefault();
 
             // parameter값 처리
@@ -311,35 +466,108 @@ public class DbService : IDbService
 
             // DB Adapter
             IDataAdapter? dbAdapter = CreateDbAdapter(dbCommand, myCmd.ConnectionName);
-            if (dbAdapter == null) 
+            if (dbAdapter == null)
                 throw new InvalidDbException("Create DB Adapter Fail.");
             // DB Command exec 
             DataSet? ds = new("Result_Ds");
             await Task.Run(() => dbAdapter.Fill(ds));
-
             
-            //var reader = await ((SqlCommand)dbCommand).ExecuteReaderAsync();
-            //while (!reader.IsClosed)
-            //    ds.Tables.Add().Load(reader);
 
-            return ds;
+            StringWriter writer = new();
+            ds.WriteXml(writer, XmlWriteMode.WriteSchema);
+
+            XmlDocument doc = new()
+            {
+                InnerXml = writer.ToString()
+            };
+
+            var rtn = new MyReturn()
+            {
+                ReturnCD = "S",
+                ReturnMsg = "Success",
+                RtnBody = doc.DocumentElement
+            };
+            return rtn;
+        }
+        catch (InvalidDbException ex)
+        {
+            return new MyReturn()
+            {
+                //RtnHeader = rtnHeader,
+                ReturnCD = "F",
+                ReturnMsg = ex.Message,
+                RtnBody = null
+            };
         }
         catch (Exception)
         {
             throw;
         }
 
+
     }
+    
+    
+    public MyReturn GetDataTest()
+    {
+        string conString = "Data source=172.20.105.36,12345;User ID=sa;Password=wkehd123!@;Initial Catalog=TESTDB;Connection Timeout=30;TrustServerCertificate=true";
+        //SqlConnection con;
+        SqlCommand cmd;
+        SqlDataAdapter sda;
+        DataTable dt;
+        //Employee emp = new Employee();
+
+        using (var con = new SqlConnection(conString))
+        {
+            cmd = new SqlCommand("select * from testdb..Student;select * from testdb..Student;", con);
+            //cmd = new SqlCommand("select * from testdb..Employee;", con);
+            sda = new SqlDataAdapter(cmd);
+
+            DataSet? ds = new("Result_Ds");
+            sda.Fill(ds);
+
+            StringWriter writer = new();
+            ds.WriteXml(writer, XmlWriteMode.WriteSchema);
+
+            XmlDocument doc = new XmlDocument();
+            doc.InnerXml = writer.ToString();
+
+            //var rtnHeader = new ReturnHeader(){
+            //    ReturnCD ="S",
+            //    ReturnMsg="Success"
+            //};
+            var rtn = new MyReturn()
+            {
+                //RtnHeader = rtnHeader,
+                ReturnCD = "S",
+                ReturnMsg = "Success",
+                RtnBody = doc.DocumentElement
+            };
+            return rtn;
+            //doc.Load( );
+            // In your case:
+            //return doc.DocumentElement;
+
+            //XmlElement xE = (XmlElement)Serialize(ds);
+
+            //StringWriter writer = new();
+            //ds.WriteXml(writer, XmlWriteMode.WriteSchema);
+
+            //return xE;
+        }
+    }
+
+
     private IDbConnection? CreateDbConnection(string connectionName, out string providerName)
     {
         // db 연결정보 가져오기
         var connInfo = _connectInfos.Find(x => x.ConnectionName == connectionName);
         if (connInfo == null)
             throw new InvalidDbException("There's no Connection Info.");
-       
-        providerName = connInfo.ProviderName;   
 
-        IDbConnection? dbConnection = null; 
+        providerName = connInfo.ProviderName;
+
+        IDbConnection? dbConnection = null;
         if (providerName.Equals("Microsoft.Data.SqlClient"))
             dbConnection = new SqlConnection(connInfo.ConnectionString);
         else if (providerName.Equals("Oracle.ManagedDataAccess.Client"))
@@ -387,7 +615,7 @@ public class DbService : IDbService
         foreach (var myPara in myCmd.Parameters ?? Enumerable.Empty<MyPara>())
         {
             IDbDataParameter? dbParameter = null;
-            if (string.IsNullOrEmpty( myPara.ParameterName) ) continue;
+            if (string.IsNullOrEmpty(myPara.ParameterName)) continue;
 
             if (sProviderName.Equals("Microsoft.Data.SqlClient"))
                 dbParameter = new SqlParameter(myPara.ParameterName, (SqlDbType)myPara.DbDataType);
@@ -398,7 +626,7 @@ public class DbService : IDbService
 
             if (dbParameter == null)
                 throw new InvalidDbException("Create DB parameter Error.");
-            
+
             dbParameter.Direction = (ParameterDirection)Convert.ToInt32(myPara.Direction);
 
             dbCommand.Parameters.Add(dbParameter);
@@ -430,15 +658,16 @@ public class DbService : IDbService
 
         return dbAdapter;
     }
-    private bool IsExistConnectName(string connectionName) {
-        
-        
+    private bool IsExistConnectName(string connectionName)
+    {
+
+
         var connInfo = _connectInfos.Find(x => x.ConnectionName == connectionName);
         if (connInfo == null) return false;
 
         return true;
     }
-    
+
     /// <summary>
     /// 파라미터 값을 처리한다.
     /// </summary>
@@ -447,7 +676,7 @@ public class DbService : IDbService
     /// <param name="valuePairs"></param>
     /// <returns></returns>
     /// <exception cref="InvalidDbException"></exception>
-    private bool SetParameterValue (IDbCommand dbCmd, MyCommand myCmd, Dictionary<string,string> valuePairs)
+    private bool SetParameterValue(IDbCommand dbCmd, MyCommand myCmd, Dictionary<string, string> valuePairs)
     {
         try
         {
@@ -456,35 +685,48 @@ public class DbService : IDbService
                 if (dbPara.Direction == ParameterDirection.Input) { }
                 else if (dbPara.Direction == ParameterDirection.InputOutput) { }
                 else continue;
-                
+
                 // parameter 값이 있어면 넣고 없어면 DBNull
-                if(valuePairs.ContainsKey(dbPara.ParameterName))
+                if (valuePairs.ContainsKey(dbPara.ParameterName))
                 {
                     dbPara.Value = valuePairs[dbPara.ParameterName];
                     dbPara.Value ??= System.DBNull.Value;
-                }                    
+                }
                 else
                     dbPara.Value = System.DBNull.Value;
-                
+
                 // 상위 Output 파라미터값을 참조하는지 ?
                 // 상위 Output값을 찾아서 SetValue
                 var myPara = myCmd.Parameters?
                     .Find(x => x.ParameterName == dbPara.ParameterName &&
                                !string.IsNullOrEmpty(x.HeaderCommandName) &&
                                !string.IsNullOrEmpty(x.HeaderParameter));
-                
+
                 // 참조할 output이 없어면 Skip
                 if (myPara == null) continue;
 
                 // 해당 파라미터가 헤더 command의 파라미터 참조해야 한다면
-                DBOutPut? output = OutputList
-                        .OrderByDescending(x => x.Rowseq)
-                        .FirstOrDefault(x => x.CommandName == myPara.HeaderCommandName &&
-                         x.ParameterName == myPara.HeaderParameter);
-                if (output == null) 
-                    throw new InvalidDbException($"참조가 필요한 {myPara.HeaderCommandName} Command의 {myPara.HeaderParameter} 파라미터 Output값을 찾을 수 없습니다.");
+                //DBOutPut? output = OutputList
+                //        .OrderByDescending(x => x.Rowseq)
+                //        .FirstOrDefault(x => x.CommandName == myPara.HeaderCommandName &&
+                //         x.ParameterName == myPara.HeaderParameter);
+                //if (output == null)
+                //    throw new InvalidDbException($"참조가 필요한 {myPara.HeaderCommandName} Command의 {myPara.HeaderParameter} 파라미터 Output값을 찾을 수 없습니다.");
+                //dbPara.Value = output.OutValue;
 
-                dbPara.Value = output.OutValue;
+                //DataRow[] rows = null;
+
+                // output 테이블에서 필요한 행을 가져옴
+                // _outputDt.DefaultView.Sort = " ROWSEQ DESC ";
+                DataRow[] rows = _outputDt.Select(" CommandName  = '" + myPara.HeaderCommandName + "'" +
+                                                  " AND ParameterName= '" + myPara.HeaderParameter + "'",
+                                                  " Rowseq Desc");
+                if (rows.Length < 1)
+                {
+                    throw new InvalidDbException($"참조가 필요한 {myPara.HeaderCommandName} Command의 {myPara.HeaderParameter} 파라미터 Output값을 찾을 수 없습니다.");
+                }
+                
+                dbPara.Value = rows[0]["OutputValue"];
             }
             return true;
         }
@@ -494,6 +736,7 @@ public class DbService : IDbService
         }
 
     }
+
     /// <summary>
     /// Output & InputOutput & ReturnValue 를 저장
     /// </summary>
@@ -508,28 +751,47 @@ public class DbService : IDbService
             else if ((param.Direction == ParameterDirection.ReturnValue)) { }
             else continue;
 
-            DBOutPut rtnPara = new()
-            {
-                Rowseq = OutputList.Count + 1,
-                CommandName = commandName,
-                ParameterName = param.ParameterName.Trim(),
-                OutValue = param.Value?.ToString() ?? String.Empty
-            };
-            OutputList.Add(rtnPara);
+            //DBOutPut rtnPara = new()
+            //{
+            //    Rowseq = OutputList.Count + 1,
+            //    CommandName = commandName,
+            //    ParameterName = param.ParameterName.Trim(),
+            //    OutValue = param.Value?.ToString() ?? String.Empty
+            //};
+            //OutputList.Add(rtnPara);
+            // Console.WriteLine(rtnPara);
 
-            Console.WriteLine(rtnPara);
+            DataRow row = _outputDt.NewRow();
+            // rowseq 자동 증가
+            row["CommandName"] = commandName;
+            row["ParameterName"] = param.ParameterName.Trim();
+            row["OutputValue"] = param.Value?.ToString() ?? String.Empty;
+            _outputDt.Rows.Add(row);
+            _outputDt.AcceptChanges();
 
         }
     }
 
-}
+    private static DataTable CreateOutputTable()
+    {
+        DataTable dt = new DataTable("Table");
+        
+        DataColumn colseq = new DataColumn("Rowseq");
+        colseq.DataType = System.Type.GetType("System.Int32");
+        colseq.AutoIncrement = true; colseq.AutoIncrementSeed = 1; colseq.AutoIncrementStep = 1;
 
-///// <summary>
-///// DB Connection Info
-///// </summary>
-//public class ConnectDBInfo
-//{
-//    public string ConnectionName { get; set; } = String.Empty;
-//    public string ConnectionString { get; set; } = String.Empty;
-//    public string ProviderName { get; set; } = String.Empty;
-//}
+        dt.Columns.Add(colseq);
+        dt.Columns.Add("CommandName", typeof(string));
+        dt.Columns.Add("ParameterName", typeof(string));
+        dt.Columns.Add("OutputValue", typeof(string));
+
+        return dt;
+
+        //        public int Rowseq { get; set; }
+        //public string CommandName { get; set; }
+        //public string ParameterName { get; set; }
+        //public string OutValue { get; set; }
+    }
+
+
+}
