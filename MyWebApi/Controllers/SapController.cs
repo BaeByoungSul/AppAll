@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Models.Sap;
+using MyWebApi.Models.Sap.PP0370;
+using Sap;
 using Services.SapService;
 using System.IO;
 using System.Net;
@@ -17,6 +19,8 @@ public partial class SapController : ControllerBase
     private readonly ISapService _sapService;
     private readonly string PP0370_QAS = "http://infheaidrdb01.kolon.com:51000/XISOAPAdapter/MessageServlet?senderParty=&senderService=INF_ESP_QAS&receiverParty=&receiverService=&interface=SI_GRP_PP0370_SO&interfaceNamespace=http://grpeccpp.esp.com/infesp";
     private readonly string PP0370_PRD = "http://infheaidrdb01.kolon.com:51000/XISOAPAdapter/MessageServlet?senderParty=&senderService=INF_ESP_QAS&receiverParty=&receiverService=&interface=SI_GRP_PP0370_SO&interfaceNamespace=http://grpeccpp.esp.com/infesp";
+
+    //http://infheaidrdb01.kolon.com:51000/dir/wsdl?p=ic/8b24bde7a5a136b7b5b2e341913c80d2
 
     public SapController(ISapService sapService)
     {

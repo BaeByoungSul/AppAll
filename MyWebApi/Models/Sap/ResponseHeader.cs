@@ -13,4 +13,3 @@ public class ResponseHeader
     public string? ZResultMsg { get; set; }
 
 }
-

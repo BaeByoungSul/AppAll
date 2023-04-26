@@ -1,4 +1,4 @@
-﻿using Models.Sap;
+﻿using MyWebApi.Models.Sap.PP0370;
 using System.Net.Http.Headers;
 using System.Text;
 
@@ -10,6 +10,8 @@ public class SapService : ISapService
     private readonly string clientSecret;
 
     private readonly string SoapAction = @"http://sap.com/xi/WebService/soap1.1";
+
+    
     public SapService(IConfiguration configuration)
     {
         clientId = configuration.GetValue<string>("SapAuth:BasicUser");
@@ -124,5 +126,6 @@ public class SapService : ISapService
         Console.WriteLine(reqString);
         return reqString;
     }
+
 
 }

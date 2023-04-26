@@ -1,7 +1,8 @@
 ﻿using Mysqlx.Crud;
+using MyWebApi.Models.Sap.PP0370;
 using System.Xml.Serialization;
 
-namespace Models.Sap;
+namespace Models.Sap.PP0370;
 
 /// <summary>
 /// Reponse 샘플
@@ -77,7 +78,6 @@ public class PP0370_Response2
     }
 
 
- 
+
 
 };
-

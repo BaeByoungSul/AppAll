@@ -1,6 +1,6 @@
 ﻿using System.Xml.Serialization;
 
-namespace Models.Sap;
+namespace Models.Sap.PP0060;
 /// <summary>
 /// 기간오픈정보
 /// </summary>
@@ -60,12 +60,12 @@ public partial class Req_PP0060
 {
     public Req_PP0060()
     {
-        Header = new ReqHeader();
+        Header = new RequestHeader();
         Body = new ReqBody_PP0060();
     }
     
     [XmlElement(ElementName = "Header", Namespace = "", Order = 0)]
-    public ReqHeader Header { get; set; }
+    public RequestHeader Header { get; set; }
 
     [XmlElement(ElementName = "Body", Namespace = "", Order = 1)]
     public ReqBody_PP0060 Body { get; set; }

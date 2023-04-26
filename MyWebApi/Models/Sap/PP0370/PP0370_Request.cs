@@ -1,17 +1,18 @@
 ﻿using System.Xml.Serialization;
+using Models.Sap;
 
-namespace Models.Sap;
+namespace Models.Sap.PP0370;
 
 public class PP0370_Request
 {
     public PP0370_Request()
     {
-        Header = new ReqHeader();
+        Header = new RequestHeader();
         Body = new PP0370_ReqBody();
     }
 
     [XmlElement(ElementName = "Header", Namespace = "", Order = 0)]
-    public ReqHeader Header { get; set; }
+    public RequestHeader Header { get; set; }
 
     [XmlElement(ElementName = "Body", Namespace = "", Order = 1)]
     public PP0370_ReqBody Body { get; set; }

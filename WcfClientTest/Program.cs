@@ -1,23 +1,184 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using Models.Database;
+
 using Services.DbService;
 using Services.FileService;
 using System.Data;
-using System.Diagnostics;
-using System.IO;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.ServiceModel;
-using static System.Net.Mime.MediaTypeNames;
+using System.Text;
+using System.Xml.Serialization;
+using System.Xml;
+
+using Sap;
+using Sap.PP0370;
+using Sap.PP0060;
 
 Console.WriteLine("Hello, World!");
-//RunTest.RunFileDownload("aaa.exe");
+RunTest.RunFileDownload("aaa.exe");
 //RunTest.RunFileUpload("CRRedist2008_x64.msi");
 //RunTest.RunGetDataSet();
 
-RunTest.RunExecNonQuery();
+//RunTest.RunExecNonQuery();
+//RunTest.RunPP0370();
+
+//RunTest.RunPP0060();
 
 public static class RunTest  {
+    private static readonly string PP0370_QAS = "http://infheaidrdb01.kolon.com:51000/XISOAPAdapter/MessageServlet?senderParty=&senderService=INF_ESP_QAS&receiverParty=&receiverService=&interface=SI_GRP_PP0370_SO&interfaceNamespace=http://grpeccpp.esp.com/infesp";
+    private static readonly string PP0060_QAS = "http://infheaidrdb01.kolon.com:51000/XISOAPAdapter/MessageServlet?senderParty=&senderService=INF_ESP_QAS&receiverParty=&receiverService=&interface=SI_GRP_PP0060_SO&interfaceNamespace=http://grpeccpp.esp.com/infesp\r\n";
+
+
+    public static void RunPP0060()
+    {
+        // This code is written by an application developer.
+        // Create a channel factory.
+        //BasicHttpBinding myBinding = new BasicHttpBinding();
+        PP0060_Request request = Get_Req_PP0060();
+
+        //Console.WriteLine(XmlSerialize(typeof(SI_GRP_PP0370_SORequest),
+        //                request, null));
+
+        BasicHttpBinding myBinding = GetSapHttpBinding();
+
+        EndpointAddress myEndpoint = new EndpointAddress(PP0060_QAS);
+
+        ChannelFactory<ISapPP0060> cf = new ChannelFactory<ISapPP0060>(myBinding, myEndpoint);
+        cf.Credentials.UserName.UserName = "IF_KIICHA";
+        cf.Credentials.UserName.Password = "Interface!12";
+        // Create a channel.
+        ISapPP0060 _cli = cf.CreateChannel();
+
+        var rtn =  _cli.SI_GRP_PP0060_SO(request);
+       // Console.WriteLine(rtn);
+
+        //rtn.RtnBody.RemoveAttribute("xmlns"); // StringReader할 때 오류가 나서 추가함
+        //Console.WriteLine(rtn.RtnBody?.OuterXml);
+        //StringReader theReader = new StringReader(rtn.RtnBody.OuterXml);
+
+        //DataSet ds = new DataSet();
+        //ds.ReadXml(theReader, XmlReadMode.ReadSchema);
+
+
+        ((IClientChannel)_cli).Close();
+
+        cf.Close();
+    }
+    private static PP0060_Request Get_Req_PP0060()
+    {
+
+        RequestHeader reqHeader = new RequestHeader()
+        {
+            ZInterfaceId = "GRP_PP0370",
+            ZConSysId = "KII_CHA",
+            ZProSysId = "GRP_ECC_PP",
+            ZPiUser = "IF_KIICHA",
+            ZTimeId = DateTime.Now.ToString("yyyyMMddHHmmss"),
+            ZUserId = "BBS"
+        };
+
+        
+        // mt.Header = reqHeader;
+
+        //private DT_ReqHeader headerField;
+        // private DT_GRP_PP0370_ConBody bodyField;
+        PP0060_Request req = new PP0060_Request()
+        {
+             MT_GRP_PP0060_Con =  new DT_GRP_PP0060_Con()
+             {
+                 Header = reqHeader,    
+                 Body = new DT_PP0060_ReqBody()
+                 {
+                      WERKS= "5131",
+                      SPMON=  "202301"
+                 }
+             }
+        };
+
+        return req;
+
+    }
+   
+    public static void RunPP0370()
+    {
+        // This code is written by an application developer.
+        // Create a channel factory.
+        //BasicHttpBinding myBinding = new BasicHttpBinding();
+        PP0370_Request request = Get_Req_PP0370();
+
+        //Console.WriteLine(XmlSerialize(typeof(SI_GRP_PP0370_SORequest),
+        //                request, null));
+
+        BasicHttpBinding myBinding = GetSapHttpBinding();
+
+        EndpointAddress myEndpoint = new EndpointAddress(PP0370_QAS);
+
+        ChannelFactory<ISapPP0370> cf = new ChannelFactory<ISapPP0370>(myBinding, myEndpoint);
+        cf.Credentials.UserName.UserName = "IF_KIICHA";
+        cf.Credentials.UserName.Password = "Interface!12";
+        // Create a channel.
+        ISapPP0370 _cli = cf.CreateChannel();
+
+        var rtn = _cli.SI_GRP_PP0370_SO(request);
+        Console.WriteLine(rtn);
+
+        //rtn.RtnBody.RemoveAttribute("xmlns"); // StringReader할 때 오류가 나서 추가함
+        //Console.WriteLine(rtn.RtnBody?.OuterXml);
+        //StringReader theReader = new StringReader(rtn.RtnBody.OuterXml);
+
+        //DataSet ds = new DataSet();
+        //ds.ReadXml(theReader, XmlReadMode.ReadSchema);
+
+
+        ((IClientChannel)_cli).Close();
+
+        cf.Close();
+    }
+    private static PP0370_Request Get_Req_PP0370()
+    {
+
+        RequestHeader reqHeader = new RequestHeader()
+        {
+            ZInterfaceId = "GRP_PP0370",
+            ZConSysId = "KII_CHA",
+            ZProSysId = "GRP_ECC_PP",
+            ZPiUser = "IF_KIICHA",
+            ZTimeId = DateTime.Now.ToString("yyyyMMddHHmmss"),
+            ZUserId = "BBS"
+        };
+
+        CWERKS[] werks = new CWERKS[]
+        { new CWERKS {WERKS = "1108"}
+          };
+        CMATNR[] matnrs = new CMATNR[]
+        { new CMATNR  {MATNR = "10004001"} };
+
+        CLGORT[] lgorts = new CLGORT[]
+        {
+                new CLGORT { LGORT="3101"},
+                new CLGORT { LGORT="1101"}
+
+        };
+        // req para Body 
+        DT_ReqBody reqBody = new DT_ReqBody()
+        {
+            T_WERKS = werks,
+            T_MATNR = matnrs,
+            T_LGORT = lgorts
+        };
+        DT_GRP_PP0370_Con mt = new DT_GRP_PP0370_Con()
+        {
+            Header = reqHeader,
+            Body = reqBody
+        };
+        // mt.Header = reqHeader;
+
+        //private DT_ReqHeader headerField;
+        // private DT_GRP_PP0370_ConBody bodyField;
+        PP0370_Request req = new  PP0370_Request(mt);
+
+        return req;
+
+    }
     public static void RunGetDataSet() {
         // This code is written by an application developer.
         // Create a channel factory.
@@ -308,5 +469,57 @@ public static class RunTest  {
 
         return binding;
     }
+    private static BasicHttpBinding GetSapHttpBinding()
+    {
+        BasicHttpBinding binding = new BasicHttpBinding();
+
+        binding.TransferMode = TransferMode.Buffered;
+        //binding.MessageEncoding = WSMessageEncoding.Mtom;
+        binding.Security.Mode = BasicHttpSecurityMode.TransportCredentialOnly;
+        binding.Security.Transport.ClientCredentialType = HttpClientCredentialType.Basic;
+
+        binding.MaxBufferSize = 2147483647;
+        binding.MaxReceivedMessageSize = 2147483647;
+
+        binding.OpenTimeout = TimeSpan.FromMinutes(5);
+        binding.CloseTimeout = TimeSpan.FromMinutes(5);
+        binding.ReceiveTimeout = TimeSpan.FromMinutes(15);
+        binding.SendTimeout = TimeSpan.FromMinutes(15);
+
+        binding.ReaderQuotas.MaxStringContentLength = 2147483647;
+
+        return binding;
+    }
+
+    public static string XmlSerialize(Type dataType, object data, XmlSerializerNamespaces xmlns)
+    {
+
+        XmlSerializer xmlSerializer = new XmlSerializer(dataType);
+        var settings = new XmlWriterSettings
+        {
+            Encoding = Encoding.UTF8,
+            Indent = true,
+            OmitXmlDeclaration = true,
+        };
+
+        using (StringWriter textWriter = new StringWriter())
+        {
+            using (XmlWriter xmlWriter = XmlWriter.Create(textWriter, settings))
+            {
+                xmlSerializer.Serialize(xmlWriter, data, xmlns);
+            }
+
+            return textWriter.ToString(); //This is the output as a string
+
+        }
+        //var builder = new StringBuilder();
+        //using (var writer = XmlWriter.Create(builder, settings))
+        //{
+        //    xmlSerializer.Serialize(writer, data, xmlns);
+        //}
+        //return builder.ToString();
+
+    }
+
 }
 

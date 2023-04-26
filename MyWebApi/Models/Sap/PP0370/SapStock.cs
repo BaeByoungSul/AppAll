@@ -1,6 +1,6 @@
 ﻿using System.Xml.Serialization;
 
-namespace Models.Sap;
+namespace MyWebApi.Models.Sap.PP0370;
 
 public class SapStock
 {

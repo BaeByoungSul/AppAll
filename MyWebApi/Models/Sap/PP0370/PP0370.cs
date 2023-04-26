@@ -4,7 +4,7 @@ using System.Linq;
 using System.Web;
 using System.Xml.Serialization;
 
-namespace Models.Sap;
+namespace Models.Sap.PP0370;
 
 public class PP0370
 {
@@ -17,10 +17,10 @@ public class PP0370
         private static readonly XmlSerializerNamespaces sapXmlns;
 
         [XmlElement(ElementName = "Header")]
-        public EnvHeader Header { get; set; }= new EnvHeader(); 
+        public EnvHeader Header { get; set; } = new EnvHeader();
 
         [XmlElement(ElementName = "Body")]
-        public EnvBody Body { get; set; }=  new EnvBody();  
+        public EnvBody Body { get; set; } = new EnvBody();
 
         static Envelope()
         {

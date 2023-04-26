@@ -4,6 +4,8 @@ using Models;
 using System.Net;
 using Models.Database;
 using Services.DbService;
+using Swashbuckle.AspNetCore.Swagger;
+using Microsoft.AspNetCore.Builder;
 
 var builder = WebApplication.CreateBuilder();
 
@@ -49,6 +51,8 @@ builder.Services.AddSingleton(dbConnConfig);
 
 
 var app = builder.Build();
+
+
 
 app.UseServiceModel(serviceBuilder =>
 {

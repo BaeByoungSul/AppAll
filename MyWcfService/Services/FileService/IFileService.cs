@@ -1,6 +1,8 @@
 ﻿using System.Xml;
 using System.Runtime.Serialization;
 using System.ServiceModel;
+using Org.BouncyCastle.Asn1.X509;
+using System.Xml.Serialization;
 
 namespace Services.FileService;
 
@@ -16,6 +18,7 @@ public interface IFileService
     [OperationContract]
     UploadResponse UploadFile(UploadFile uploadFile);
 
+
     [OperationContract]
     DownloadResponse DownloadFile(DownloadFile request);
 
@@ -23,7 +26,6 @@ public interface IFileService
     CheckFileResponse CheckFile(string fileName);
 
 }
-
 
 
 [MessageContract]
@@ -36,7 +38,7 @@ public class UploadFile : IDisposable
     [MessageHeader]
     public long FileLength { get; set; }
 
-    [MessageBodyMember(Order = 1)]
+    [MessageBodyMember(Order = 2)]
     public Stream? FileStream { get; set; }
 
     public void Dispose()
@@ -52,10 +54,10 @@ public class UploadFile : IDisposable
 [MessageContract]
 public class UploadResponse
 {
-    [MessageHeader]
-    public string ReturnCD { get; set; }
-    [MessageHeader]
-    public string ReturnMsg { get; set; }
+    [MessageBodyMember]
+    public string? ReturnCD { get; set; }
+    [MessageBodyMember]
+    public string? ReturnMsg { get; set; }
 
 
 }
@@ -72,9 +74,9 @@ public class DownloadFile
 public class DownloadResponse
 {
     [MessageHeader]
-    public string ReturnCD { get; set; }
+    public string? ReturnCD { get; set; }
     [MessageHeader]
-    public string ReturnMsg { get; set; }
+    public string? ReturnMsg { get; set; }
 
     [MessageHeader]
     public string FileName { get; set; } = string.Empty;

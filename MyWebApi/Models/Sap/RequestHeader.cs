@@ -2,7 +2,7 @@
 
 namespace Models.Sap;
 
-public class ReqHeader
+public class RequestHeader
 {
     [XmlElement(ElementName = "zInterfaceId")]
     public string ZInterfaceId { get; set; }= String.Empty;

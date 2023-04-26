@@ -11,6 +11,7 @@ using Services.EmailService;
 using Services.FileService;
 using Services.SapService;
 using Services.TokenService;
+using Services.SapWcfService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -87,10 +88,11 @@ builder.Services.AddSingleton(emailConfig);
 
 builder.Services.AddScoped<IDbService, DbService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<JwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<ISapService, SapService>();
+builder.Services.AddScoped<SapWcfService>();
 
 var app = builder.Build();
 
