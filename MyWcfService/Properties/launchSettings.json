@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "CoreWCFService": {
+    "MyWCFService": {
       "commandName": "Project",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"

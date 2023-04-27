@@ -3,6 +3,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>true</ImplicitUsings>
+    <UserSecretsId>dd435ee5-6393-468f-b2ee-dd18596ae43c</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
     <Using Include="CoreWCF" />
