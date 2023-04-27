@@ -1,6 +1,4 @@
-﻿using System.Runtime.Serialization;
-using System.Xml;
-using System.Xml.Serialization;
+﻿using System.Xml;
 
 namespace Models.Database;
 
@@ -36,18 +34,6 @@ public class MyCommand
     //public SetArrayParaValues ParaValues { get; set; }
 }
 
-//[CollectionDataContract(ItemName = "SetOfParaValue", Namespace ="")]
-//public class SetArrayParaValues : List<MyParaValue[]> { }
-
-[DataContract(Namespace = "")]
-public class MyParaValue
-{
-    [DataMember]
-    public string? ParameterName { get; set; }
-    [DataMember]
-    public string? ParameterValue { get; set; }
-}
-
 /// <summary>
 /// HeaderCommandName, HeaderParameter :
 ///   - ExecNonQuery 여러개의 Command를 실행할 때 
@@ -74,19 +60,17 @@ public class MyPara
     public string? HeaderParameter { get; set; }
 }
 
-/// <summary>
-/// Parameter Value Dictionary
-/// </summary>
-//[CollectionDataContract
-//    (Name = "ParameterWithValue",
-//     ItemName = "Parameter",
-//     KeyName = "ParameterName",
-//     ValueName = "ParameterValue",
-//     Namespace =""
-//    )]
-//public class MyParaValue : Dictionary<string, string>
-//{
-//}
+//[CollectionDataContract(ItemName = "SetOfParaValue", Namespace ="")]
+//public class SetArrayParaValues : List<MyParaValue[]> { }
+
+[DataContract(Namespace = "")]
+public class MyParaValue
+{
+    [DataMember]
+    public string? ParameterName { get; set; }
+    [DataMember]
+    public string? ParameterValue { get; set; }
+}
 
 
 [DataContract (Namespace = "")]
@@ -106,6 +90,20 @@ public class MyReturn
     public XmlElement? RtnBody { get; set; }
 }
 
+
+/// <summary>
+/// Parameter Value Dictionary
+/// </summary>
+//[CollectionDataContract
+//    (Name = "ParameterWithValue",
+//     ItemName = "Parameter",
+//     KeyName = "ParameterName",
+//     ValueName = "ParameterValue",
+//     Namespace =""
+//    )]
+//public class MyParaValue : Dictionary<string, string>
+//{
+//}
 
 
 // 사용하지 않음 

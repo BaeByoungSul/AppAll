@@ -518,7 +518,7 @@ public class DbService : IDbService
         //SqlConnection con;
         SqlCommand cmd;
         SqlDataAdapter sda;
-        DataTable dt;
+       // DataTable dt;
         //Employee emp = new Employee();
 
         using (var con = new SqlConnection(conString))

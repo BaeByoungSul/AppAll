@@ -1,4 +1,4 @@
-﻿using MyWebApi.Models.Sap.PP0370;
+﻿using Models.Sap.PP0370;
 using System.Net.Http.Headers;
 using System.Text;
 

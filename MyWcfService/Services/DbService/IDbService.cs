@@ -1,5 +1,4 @@
-﻿using CoreWCF.Web;
-using Models.Database;
+﻿using Models.Database;
 
 namespace Services.DbService;
 

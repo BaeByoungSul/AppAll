@@ -1,6 +1,5 @@
 ﻿using Models.File;
 using System.Diagnostics;
-using System.IO;
 
 namespace Services.FileService;
 

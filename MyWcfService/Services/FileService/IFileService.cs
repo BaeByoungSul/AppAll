@@ -1,10 +1,4 @@
-﻿using System.Xml;
-using System.Runtime.Serialization;
-using System.ServiceModel;
-using Org.BouncyCastle.Asn1.X509;
-using System.Xml.Serialization;
-
-namespace Services.FileService;
+﻿namespace Services.FileService;
 
 /// <summary>
 /// DownloadFile: Server To Client로 File Stream 전송

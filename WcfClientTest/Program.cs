@@ -12,9 +12,12 @@ using System.Xml;
 using Sap;
 using Sap.PP0370;
 using Sap.PP0060;
+using System;
+using Models.Sap;
 
 Console.WriteLine("Hello, World!");
-RunTest.RunFileDownload("aaa.exe");
+// RunTest.RunFileDownload("aaa.exe");
+
 //RunTest.RunFileUpload("CRRedist2008_x64.msi");
 //RunTest.RunGetDataSet();
 
@@ -22,12 +25,151 @@ RunTest.RunFileDownload("aaa.exe");
 //RunTest.RunPP0370();
 
 //RunTest.RunPP0060();
-
+RunTest.RunSapReq();
 public static class RunTest  {
     private static readonly string PP0370_QAS = "http://infheaidrdb01.kolon.com:51000/XISOAPAdapter/MessageServlet?senderParty=&senderService=INF_ESP_QAS&receiverParty=&receiverService=&interface=SI_GRP_PP0370_SO&interfaceNamespace=http://grpeccpp.esp.com/infesp";
     private static readonly string PP0060_QAS = "http://infheaidrdb01.kolon.com:51000/XISOAPAdapter/MessageServlet?senderParty=&senderService=INF_ESP_QAS&receiverParty=&receiverService=&interface=SI_GRP_PP0060_SO&interfaceNamespace=http://grpeccpp.esp.com/infesp\r\n";
 
+    public static   void RunSapReq()
+    {
+        BasicHttpBinding myBinding = GetDbHttpBinding();
 
+        EndpointAddress myEndpoint = new EndpointAddress("http://172.20.105.36:5310/SapService");
+
+        ChannelFactory<ISapService> myChannelFactory = new ChannelFactory<ISapService>(myBinding, myEndpoint);
+
+        // Create a channel.
+        ISapService _cli = myChannelFactory.CreateChannel();
+        string url = "http://infheaidrdb01.kolon.com:51000/XISOAPAdapter/MessageServlet?senderParty=&senderService=INF_ESP_QAS&receiverParty=&receiverService=&interface=SI_GRP_PP0370_SO&interfaceNamespace=http://grpeccpp.esp.com/infesp";
+        string req = PP0370_REQ();
+        SapRequest cmd = new SapRequest()
+        {
+            requestUrl = url,
+            requestXml = req
+
+        };
+        try
+        {
+            var rtn = _cli.Request_Sap(cmd);
+            //        Console.WriteLine(rtn.ReturnCD);
+            //rtn.RtnBody.RemoveAttribute("xmlns"); // StringReader할 때 오류가 나서 추가함
+
+            DataSet ds = new DataSet();
+            DataTable dt1 = new DataTable("Header");
+            dt1.Columns.Add("zResultCd", typeof(string));
+            dt1.Columns.Add("zResultMsg", typeof(string));
+            ds.Tables.Add(dt1);
+
+            DataTable dt2 = new DataTable("STOCK_LIST");
+            dt2.Columns.Add("WERKS", typeof(string));
+            dt2.Columns.Add("MATNR", typeof(string));
+            ds.Tables.Add(dt2);
+
+
+            // Console.WriteLine(rtn.FirstChild);
+            // var rtnHeader = rtn.FirstChild as XmlElement;
+
+            Console.WriteLine(rtn.OuterXml);
+            StringReader theReader = new StringReader(rtn.OuterXml );
+            ds.ReadXml(theReader, XmlReadMode.IgnoreSchema);
+
+        }
+        catch (Exception ex)
+        {
+
+            Console.WriteLine(ex.Message);
+        }
+
+
+
+        ((IClientChannel)_cli).Close();
+
+        myChannelFactory.Close();
+    }
+
+    private static string PP0370_REQ()
+    {
+
+        Dictionary<string, string> headerDic = GetHeaderDic();
+
+
+        StringBuilder sb = new StringBuilder();
+        StringWriter strw = new StringWriter(sb);
+
+        using (XmlTextWriter w = new XmlTextWriter(strw))
+        {
+            w.Formatting = Formatting.Indented;
+
+            w.WriteStartElement("soapenv", "Envelope", "http://schemas.xmlsoap.org/soap/envelope/");
+            w.WriteAttributeString("xmlns", "inf", null, "http://grpeccpp.esp.com/infesp");
+
+            w.WriteStartElement("soapenv", "Header", null);
+            w.WriteEndElement(); // End Of soapenv:Header
+
+            w.WriteStartElement("soapenv", "Body", null);
+            w.WriteStartElement("inf", "MT_GRP_PP0370_Con", null);
+
+            // 공통부분
+            w.WriteStartElement("Header");
+            {
+                foreach (KeyValuePair<string, string> di in headerDic)
+                {
+                    w.WriteElementString(di.Key, di.Value);
+                }
+
+            }
+            w.WriteEndElement(); // End Of Header
+                                 // 공통부분 끝
+
+
+            w.WriteStartElement("Body");
+            {
+
+                w.WriteStartElement("T_WERKS");
+                w.WriteElementString("WERKS", "5131");
+                w.WriteEndElement();
+
+                w.WriteStartElement("T_MATNR");
+                w.WriteElementString("MATNR", "10352688");
+                w.WriteEndElement();
+
+                w.WriteStartElement("T_LGORT");
+                w.WriteElementString("LGORT", "5701");
+                w.WriteEndElement();
+
+            }
+
+            w.WriteEndElement(); // End Of Body
+
+
+            w.WriteEndElement(); // End Of inf:MT_GRP_PP0370_Con
+            w.WriteEndElement(); // End Of soapenv:Body
+            w.WriteEndElement(); // End Of First Start
+            w.Close();
+
+        }
+
+
+        return sb.ToString();
+        //Console.WriteLine(strw.ToString());
+
+        //XmlDocument xmlDoc = new XmlDocument();
+        //xmlDoc.LoadXml(sb.ToString());
+        //return xmlDoc;
+    }
+    private static Dictionary<string, string> GetHeaderDic()
+    {
+        Dictionary<string, string> headerDic = new Dictionary<string, string>();
+        headerDic.Add("zInterfaceId", "GRP_PP0100");
+        headerDic.Add("zConSysId", "KII_CHA");
+        headerDic.Add("zProSysId", "GRP_ECC_PP");
+        headerDic.Add("zUserId", "bbs");
+        headerDic.Add("zPiUser", "IF_KIICHA");
+        headerDic.Add("zTimeId", DateTime.Now.ToString("yyyyMMddHHmmssfff"));
+        headerDic.Add("zLang", "");
+
+        return headerDic;
+    }
     public static void RunPP0060()
     {
         // This code is written by an application developer.
@@ -186,7 +328,7 @@ public static class RunTest  {
 
         BasicHttpBinding myBinding = GetDbHttpBinding();
 
-        EndpointAddress myEndpoint = new EndpointAddress("http://172.20.105.36:7710/DBService");
+        EndpointAddress myEndpoint = new EndpointAddress("http://172.20.105.36:5110/DBService");
 
         ChannelFactory<IDbService> myChannelFactory = new ChannelFactory<IDbService>(myBinding, myEndpoint);
 
@@ -259,7 +401,7 @@ public static class RunTest  {
         };
 
         List<MyPara> paraList = new List<MyPara>();
-        List<MyParaValue> paraValueList = new List<MyParaValue>();
+        List<MyParaValue[]> paraValueList = new List<MyParaValue[]>();
         
 
         MyPara myPara = new()
@@ -278,8 +420,13 @@ public static class RunTest  {
         cmd.Parameters = paraList;
 
 
-        MyParaValue myParaValue = new();
-        myParaValue.Add("@TEST_MST_NM", "안녕하세요(ttt)");
+        MyParaValue[] myParaValue= new MyParaValue[1];
+        myParaValue[0].ParameterName = "@TEST_MST_NM";
+        myParaValue[0].ParameterValue = "안녕하세요(ttt)";
+
+        //new() { 
+        //ParameterName = "@TEST_MST_NM",
+        //ParameterValue ="안녕하세요(ttt)"};
 
         paraValueList.Add(myParaValue);
 
@@ -298,7 +445,7 @@ public static class RunTest  {
         };
 
         List<MyPara> paraList = new List<MyPara>();
-        List<MyParaValue> paraValueList = new List<MyParaValue>();
+        List<MyParaValue[]> paraValueList = new List<MyParaValue[]>();
 
 
         MyPara myPara = new()
@@ -325,19 +472,26 @@ public static class RunTest  {
         cmd.Parameters = paraList;
 
 
-        MyParaValue myParaValue = new();
-        myParaValue.Add("@TEST_DTL_NM", "배병술(ttt1)");
-        myParaValue.Add("@AMOUNT", "123.45");
+        MyParaValue[] myParaValue = new MyParaValue[2] ;
+        myParaValue[0].ParameterName = "@TEST_DTL_NM";
+        myParaValue[0].ParameterValue = "배병술(ttt2)";
+        myParaValue[1].ParameterName = "@AMOUNT";
+        myParaValue[1].ParameterValue = "123.45";
+
         paraValueList.Add(myParaValue);
         
-        myParaValue = new();
-        myParaValue.Add("@TEST_DTL_NM", "배병술(ttt2)");
-        myParaValue.Add("@AMOUNT", "123.46");
+        myParaValue = new MyParaValue[2];
+        myParaValue[0].ParameterName = "@TEST_DTL_NM";
+        myParaValue[0].ParameterValue = "배병술(ttt3)";
+        myParaValue[1].ParameterName = "@AMOUNT";
+        myParaValue[1].ParameterValue = "123.46";
         paraValueList.Add(myParaValue);
 
-        myParaValue = new();
-        myParaValue.Add("@TEST_DTL_NM", "배병술(ttt3)");
-        myParaValue.Add("@AMOUNT", "123.47");
+        myParaValue = new MyParaValue[2];
+        myParaValue[0].ParameterName = "@TEST_DTL_NM";
+        myParaValue[0].ParameterValue = "배병술(ttt4)";
+        myParaValue[1].ParameterName = "@AMOUNT";
+        myParaValue[1].ParameterValue = "123.47";
         paraValueList.Add(myParaValue);
 
 

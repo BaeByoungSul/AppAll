@@ -1,4 +1,4 @@
-﻿using MyWebApi.Models.Sap.PP0370;
+﻿using Models.Sap.PP0370;
 
 namespace Services.SapService;
 public interface ISapService

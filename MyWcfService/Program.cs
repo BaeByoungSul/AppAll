@@ -4,8 +4,7 @@ using Models;
 using System.Net;
 using Models.Database;
 using Services.DbService;
-using Swashbuckle.AspNetCore.Swagger;
-using Microsoft.AspNetCore.Builder;
+using Services.Sap;
 
 var builder = WebApplication.CreateBuilder();
 
@@ -30,6 +29,9 @@ builder.WebHost.ConfigureKestrel(options =>
     // DB Service Listen 
     options.Listen(IPAddress.Parse($"{hostConfig.Addr}"), int.Parse($"{hostConfig.DbHttpPort}"));
 
+    // Sap Service Listen 
+    options.Listen(IPAddress.Parse($"{hostConfig.Addr}"), int.Parse($"{hostConfig.SapHttpPort}"));
+
     // File Service Listen
     options.Listen(IPAddress.Parse($"{hostConfig.Addr}"), int.Parse($"{hostConfig.FileHttpPort}"));
 });
@@ -48,8 +50,6 @@ var dbConnConfig = builder.Configuration
         .GetSection("DbConnectInfo")
         .Get<List<ConnectDBInfo>>();
 builder.Services.AddSingleton(dbConnConfig);
-
-
 var app = builder.Build();
 
 
@@ -69,10 +69,28 @@ app.UseServiceModel(serviceBuilder =>
         basicDbBinding, 
         $"http://{hostConfig.Addr}:{hostConfig.DbHttpPort}/DBService"
     );
+
+
+
     //serviceBuilder.AddServiceEndpoint<DbService, IDbService>(
     //    tcpDbBinding,
     //    $"net.tcp://{hostConfig.Addr}:{hostConfig.DbTcpPort}/DBService"
     //);
+
+    serviceBuilder.AddService<SapService>(serviceOptions =>
+    {
+        //serviceOptions.BaseAddresses.Add(baseAddr1);
+        serviceOptions.DebugBehavior.IncludeExceptionDetailInFaults = true;
+    });
+
+    var basicSapBinding = MyBinding.GetSapBasicBinding();
+    
+    serviceBuilder.AddServiceEndpoint<SapService, ISapService>(
+        basicSapBinding,
+        $"http://{hostConfig.Addr}:{hostConfig.SapHttpPort}/SapService"
+    );
+
+
 
     var basicFileBinding = MyBinding.GetFileBasicBinding();
     var tcpFileBinding = MyBinding.GetFileTcpBinding();
@@ -110,6 +128,21 @@ class MyBinding
         basicBinding.SendTimeout = TimeSpan.FromMinutes(15);
 
         return basicBinding;    
+
+    }
+    public static BasicHttpBinding GetSapBasicBinding()
+    {
+        var basicBinding = new BasicHttpBinding();
+        basicBinding.Security.Mode = BasicHttpSecurityMode.None;
+        basicBinding.TransferMode = TransferMode.Streamed;
+        basicBinding.MaxReceivedMessageSize = 2147483647;
+
+        basicBinding.OpenTimeout = TimeSpan.FromMinutes(5);
+        basicBinding.CloseTimeout = TimeSpan.FromMinutes(5);
+        basicBinding.ReceiveTimeout = TimeSpan.FromMinutes(15);
+        basicBinding.SendTimeout = TimeSpan.FromMinutes(15);
+
+        return basicBinding;
 
     }
     public static NetTcpBinding GetDbTcpBinding()
