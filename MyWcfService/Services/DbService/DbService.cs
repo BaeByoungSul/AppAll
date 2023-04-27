@@ -316,7 +316,7 @@ public class DbService : IDbService
     //                    continue;
     //                }
 
-    //                // MyCommand 찾기
+    //                // MyCommand 찾기git 
     //                var myCommand = myCmds.Find(x => x.CommandName.Equals(commandName));
     //                if (myCommand == null)
     //                    throw new InvalidDbException("Command를 찾을 수 없습니다.");
