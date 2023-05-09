@@ -25,7 +25,7 @@ public class FileService : IFileService
         FileUploadRoot = _configuration?.GetSection("Hosting:FileFolder").Value;
         if (FileUploadRoot == null) throw new Exception("Server Folder Error");
 
-        //Console.WriteLine("File Service Created...{0}, {1}", GetClientAddress(), DateTime.Now);
+        Console.WriteLine("File Service Created...{0}, {1}", GetClientAddress(), DateTime.Now);
     }
     private string? GetClientAddress()
     {
@@ -96,15 +96,15 @@ public class FileService : IFileService
 
             };
 
-
-            return new DownloadResponse()
-            {
-                 ReturnCD="S",
-                 ReturnMsg="Success",
-                 FileName = reqFile.FileName,
-                 FileLength=new FileInfo(filePath).Length,  
-                 FileStream =stream
-            };
+            return fileData;
+            //return new DownloadResponse()
+            //{
+            //     ReturnCD="S",
+            //     ReturnMsg="Success",
+            //     FileName = reqFile.FileName,
+            //     FileLength=new FileInfo(filePath).Length,  
+            //     FileStream =stream
+            //};
         }
         catch (InvalidFileException ex)
         {
@@ -138,6 +138,8 @@ public class FileService : IFileService
             if (!Directory.Exists(FileUploadRoot))
                 throw new InvalidFileException("Server UplodFolder does not exists");
 
+            // 서버에서 Stream Close해야 함
+            OperationContext clientContext = OperationContext.Current;
 
             // 서버 파일경로 + 파일명
             string filePath = Path.Combine(FileUploadRoot, uploadFile.FileName);
@@ -146,10 +148,10 @@ public class FileService : IFileService
             if (File.Exists(filePath)) File.Delete(filePath);
 
             //const int bufferLen = 65536;
-            using (var targetStream =
-                new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 65536))
             //using (var targetStream =
-            //                new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None))
+            //    new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 65536))
+            using (var targetStream =
+                            new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
                 Stream sourceStream = uploadFile.FileStream;
 
@@ -167,21 +169,15 @@ public class FileService : IFileService
                 targetStream.Close();
                 sourceStream.Close();
                 Console.WriteLine("UploadFile Request {0} {1}", uploadFile.FileName, DateTime.Now);
-                return new UploadResponse
+
+                clientContext.OperationCompleted += (sender, args) =>
                 {
-                    ReturnCD = "S",
-                    ReturnMsg = "Success"
+                    //Console.WriteLine("Download File Operation Completed");
+                    // stream?.Dispose();
+                    // stream= null;
+                    uploadFile?.Dispose();
 
                 };
-                //return new UploadResponse
-                //{ 
-                //    MyReturn = new UploadResponse.ReturnBody
-                //    {
-                //        ReturnCD = "S",
-                //        ReturnMsg = "Success"
-                //    }
-                    
-                //};
             }
 
         }catch ( InvalidFileException ex)
@@ -207,6 +203,13 @@ public class FileService : IFileService
         {
             throw new FaultException(ex.ToString());
         }
+
+        return new UploadResponse
+        {
+            ReturnCD = "S",
+            ReturnMsg = "Success"
+
+        };
     }
 
     public CheckFileResponse CheckFile(string fileName)

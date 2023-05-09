@@ -499,6 +499,7 @@ public static class RunTest  {
 
         return cmd;
     }
+
     public static void RunFileDownload(string fileName)
     {
         // This code is written by an application developer.
@@ -579,6 +580,7 @@ public static class RunTest  {
         //((IClientChannel)wcfClient2).Close();
         myChannelFactory.Close();
     }
+    
     private static BasicHttpBinding GetFileHttpBinding()
     {
         BasicHttpBinding binding = new BasicHttpBinding();

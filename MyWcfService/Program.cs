@@ -37,7 +37,7 @@ builder.WebHost.ConfigureKestrel(options =>
 });
 
 //builder.WebHost.UseNetTcp(IPAddress.Parse($"{hostConfig.Addr}"), int.Parse($"{hostConfig.DbTcpPort}"));
-//builder.WebHost.UseNetTcp(IPAddress.Parse($"{hostConfig.Addr}"), int.Parse($"{hostConfig.FileTcpPort}"));
+builder.WebHost.UseNetTcp(IPAddress.Parse($"{hostConfig.Addr}"), int.Parse($"{hostConfig.FileTcpPort}"));
 
 
 builder.Services.AddServiceModelServices();
@@ -100,10 +100,10 @@ app.UseServiceModel(serviceBuilder =>
         basicFileBinding,
         $"http://{hostConfig.Addr}:{hostConfig.FileHttpPort}/FileService"
     );
-    //serviceBuilder.AddServiceEndpoint<FileService, IFileService>(
-    //    tcpFileBinding,
-    //    $"net.tcp://{hostConfig.Addr}:{hostConfig.FileTcpPort}/FileService"
-    //);
+    serviceBuilder.AddServiceEndpoint<FileService, IFileService>(
+        tcpFileBinding,
+        $"net.tcp://{hostConfig.Addr}:{hostConfig.FileTcpPort}/FileService"
+    );
 
     var serviceMetadataBehavior = app.Services.GetRequiredService<ServiceMetadataBehavior>();
     //serviceMetadataBehavior.HttpsGetEnabled = true;

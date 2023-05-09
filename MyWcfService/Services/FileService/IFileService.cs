@@ -32,7 +32,7 @@ public class UploadFile : IDisposable
     [MessageHeader]
     public long FileLength { get; set; }
 
-    [MessageBodyMember(Order = 2)]
+    [MessageBodyMember]
     public Stream? FileStream { get; set; }
 
     public void Dispose()
