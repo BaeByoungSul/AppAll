@@ -1,6 +1,7 @@
 ﻿
 using Models.Sap;
 using System.ServiceModel;
+using System.Threading.Tasks;
 using System.Xml;
 
 namespace Services.Sap
@@ -10,7 +11,7 @@ namespace Services.Sap
     public interface ISapService
     {
         [OperationContract]
-        Task<XmlElement?> Request_Sap(SapRequest req);
+        Task<XmlElement> Request_Sap(SapRequest req);
 
 
     }

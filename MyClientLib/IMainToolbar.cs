@@ -37,16 +37,16 @@ namespace CommonLib
     public interface IMainToolbar
     {
         // 해당 폼의 유효한 툴바 버튼
-        string[] ValidBtnNames { get; set; }
+        string[] ValidToolbarButtons { get; set; }
 
         // 해당 Event발생 시 툴바 버튼 조정
-        event MyBtnDelegate NotifyBtnChange;
+        event MyBtnDelegate NotifySetToolbar;
 
         // 해당 Event발생 시 상태바 메시지 표시
-        event MyMsgDelegate NotifyMsgChange;
+        event MyMsgDelegate NotifySetMessage;
 
         // 개발폼이나 사용자 컨트롤의 함수, 매개변수 툴바버튼 enum
-        void FormFunction(ToolbarEnum toolbar);
+        void ToolbarClick(ToolbarEnum toolbar);
 
     }
 }

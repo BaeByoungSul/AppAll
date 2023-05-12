@@ -29,11 +29,12 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
-            this.button1 = new System.Windows.Forms.Button();
+            this.btnFold = new System.Windows.Forms.Button();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.treeViewMenu = new System.Windows.Forms.TreeView();
             this.panel2 = new System.Windows.Forms.Panel();
             this.btnMenuRefresh = new System.Windows.Forms.Button();
+            this.tabCtrlMain = new System.Windows.Forms.TabControl();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.btnRefresh = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
@@ -58,6 +59,7 @@
             this.panel1 = new System.Windows.Forms.Panel();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
+            this.splitContainer1.Panel2.SuspendLayout();
             this.splitContainer1.SuspendLayout();
             this.panel2.SuspendLayout();
             this.toolStrip1.SuspendLayout();
@@ -65,19 +67,19 @@
             this.panel1.SuspendLayout();
             this.SuspendLayout();
             // 
-            // button1
+            // btnFold
             // 
-            this.button1.Dock = System.Windows.Forms.DockStyle.Left;
-            this.button1.Font = new System.Drawing.Font("GulimChe", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            this.button1.ForeColor = System.Drawing.SystemColors.ControlText;
-            this.button1.Location = new System.Drawing.Point(0, 0);
-            this.button1.Margin = new System.Windows.Forms.Padding(0);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(20, 24);
-            this.button1.TabIndex = 0;
-            this.button1.Text = "<";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
+            this.btnFold.Dock = System.Windows.Forms.DockStyle.Left;
+            this.btnFold.Font = new System.Drawing.Font("GulimChe", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.btnFold.ForeColor = System.Drawing.SystemColors.ControlText;
+            this.btnFold.Location = new System.Drawing.Point(0, 0);
+            this.btnFold.Margin = new System.Windows.Forms.Padding(0);
+            this.btnFold.Name = "btnFold";
+            this.btnFold.Size = new System.Drawing.Size(20, 24);
+            this.btnFold.TabIndex = 0;
+            this.btnFold.Text = "<";
+            this.btnFold.UseVisualStyleBackColor = true;
+            this.btnFold.Click += new System.EventHandler(this.BtnFold_Click);
             // 
             // splitContainer1
             // 
@@ -91,6 +93,10 @@
             // 
             this.splitContainer1.Panel1.Controls.Add(this.treeViewMenu);
             this.splitContainer1.Panel1.Controls.Add(this.panel2);
+            // 
+            // splitContainer1.Panel2
+            // 
+            this.splitContainer1.Panel2.Controls.Add(this.tabCtrlMain);
             this.splitContainer1.Size = new System.Drawing.Size(908, 453);
             this.splitContainer1.SplitterDistance = 266;
             this.splitContainer1.TabIndex = 1;
@@ -106,7 +112,7 @@
             // panel2
             // 
             this.panel2.Controls.Add(this.btnMenuRefresh);
-            this.panel2.Controls.Add(this.button1);
+            this.panel2.Controls.Add(this.btnFold);
             this.panel2.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel2.Location = new System.Drawing.Point(0, 0);
             this.panel2.Name = "panel2";
@@ -122,7 +128,16 @@
             this.btnMenuRefresh.TabIndex = 1;
             this.btnMenuRefresh.Text = "메뉴 재조회";
             this.btnMenuRefresh.UseVisualStyleBackColor = true;
-            this.btnMenuRefresh.Click += new System.EventHandler(this.btnMenuRefresh_Click);
+            this.btnMenuRefresh.Click += new System.EventHandler(this.BtnMenuRefresh_Click);
+            // 
+            // tabCtrlMain
+            // 
+            this.tabCtrlMain.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tabCtrlMain.Location = new System.Drawing.Point(0, 0);
+            this.tabCtrlMain.Name = "tabCtrlMain";
+            this.tabCtrlMain.SelectedIndex = 0;
+            this.tabCtrlMain.Size = new System.Drawing.Size(636, 451);
+            this.tabCtrlMain.TabIndex = 0;
             // 
             // toolStrip1
             // 
@@ -273,14 +288,13 @@
             // statusProgress
             // 
             this.statusProgress.Name = "statusProgress";
-            this.statusProgress.Size = new System.Drawing.Size(200, 16);
+            this.statusProgress.Size = new System.Drawing.Size(262, 16);
             // 
             // statusMsg
             // 
             this.statusMsg.AutoSize = false;
             this.statusMsg.Name = "statusMsg";
             this.statusMsg.Size = new System.Drawing.Size(150, 17);
-            this.statusMsg.Text = "Display Message";
             this.statusMsg.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // statusVersion
@@ -312,7 +326,9 @@
             this.Controls.Add(this.panel1);
             this.Name = "MainForm";
             this.Text = "개발";
+            this.Load += new System.EventHandler(this.MainForm_Load);
             this.splitContainer1.Panel1.ResumeLayout(false);
+            this.splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
             this.splitContainer1.ResumeLayout(false);
             this.panel2.ResumeLayout(false);
@@ -328,7 +344,7 @@
         }
 
         #endregion
-        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Button btnFold;
         private System.Windows.Forms.SplitContainer splitContainer1;
         private System.Windows.Forms.ToolStrip toolStrip1;
         private System.Windows.Forms.ToolStripButton btnRefresh;
@@ -355,6 +371,7 @@
         private System.Windows.Forms.ToolStripStatusLabel statusVersion;
         private System.Windows.Forms.Button btnMenuRefresh;
         private System.Windows.Forms.ToolStripStatusLabel statusMsg;
+        private System.Windows.Forms.TabControl tabCtrlMain;
     }
 }
 

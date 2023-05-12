@@ -35,6 +35,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.ServiceModel" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -46,12 +47,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Form1.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Form1.Designer.cs">
-      <DependentUpon>Form1.cs</DependentUpon>
-    </Compile>
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -87,10 +82,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\FileTest\FileTest.csproj">
-      <Project>{c3d0baaf-aa22-4053-aa0d-fda62fb2323c}</Project>
-      <Name>FileTest</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Huizhou\Huizhou.csproj">
       <Project>{19c5df1d-0647-4ffb-87ee-3bce8eacb877}</Project>
       <Name>Huizhou</Name>
@@ -98,6 +89,14 @@
     <ProjectReference Include="..\MyClientLib\MyClientLib.csproj">
       <Project>{BA326969-5C41-43CA-B703-8FBBC5C7B7F2}</Project>
       <Name>MyClientLib</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\SapIF\SapIF.csproj">
+      <Project>{9a546de4-09ea-4d15-818d-c05e22b6ee81}</Project>
+      <Name>SapIF</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Suzhou\Suzhou.csproj">
+      <Project>{e090e4b8-4bb0-43ae-8380-390e4fb2f6f5}</Project>
+      <Name>Suzhou</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

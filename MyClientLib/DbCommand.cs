@@ -17,6 +17,17 @@ namespace Models.Database
             Parameters = new List<MyPara>();
             ParaValues = new List<MyParaValue[]>();
         }
+        
+        public MyCommand( string commandName, string connectionName, int commandType, string commandText )
+        {
+            CommandName   = commandName;
+            ConnectionName= connectionName;
+            CommandType = commandType;
+            CommandText = commandText;
+
+            Parameters = new List<MyPara>();
+            ParaValues = new List<MyParaValue[]>();
+        }
 
         [DataMember(Order = 0, IsRequired = true)]
         public string CommandName { get; set; }

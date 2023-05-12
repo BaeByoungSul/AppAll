@@ -14,6 +14,7 @@ using Sap.PP0370;
 using Sap.PP0060;
 using System;
 using Models.Sap;
+using Services.Sap;
 
 Console.WriteLine("Hello, World!");
 // RunTest.RunFileDownload("aaa.exe");
@@ -34,23 +35,24 @@ public static class RunTest  {
     {
         BasicHttpBinding myBinding = GetDbHttpBinding();
 
-        EndpointAddress myEndpoint = new EndpointAddress("http://172.20.105.36:5310/SapService");
+        EndpointAddress myEndpoint = new EndpointAddress("http://172.20.105.36:6310/SapService");
 
         ChannelFactory<ISapService> myChannelFactory = new ChannelFactory<ISapService>(myBinding, myEndpoint);
 
         // Create a channel.
         ISapService _cli = myChannelFactory.CreateChannel();
+
         string url = "http://infheaidrdb01.kolon.com:51000/XISOAPAdapter/MessageServlet?senderParty=&senderService=INF_ESP_QAS&receiverParty=&receiverService=&interface=SI_GRP_PP0370_SO&interfaceNamespace=http://grpeccpp.esp.com/infesp";
         string req = PP0370_REQ();
         SapRequest cmd = new SapRequest()
         {
-            requestUrl = url,
-            requestXml = req
+            RequestUrl = url,
+            RequestXml = req
 
         };
         try
         {
-            var rtn = _cli.Request_Sap(cmd);
+            var rtn =  _cli.Request_Sap(cmd).Result;
             //        Console.WriteLine(rtn.ReturnCD);
             //rtn.RtnBody.RemoveAttribute("xmlns"); // StringReader할 때 오류가 나서 추가함
 

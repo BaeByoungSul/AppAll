@@ -4,20 +4,23 @@ using System.Configuration;
 using System.Data;
 using System.IO;
 using System.ServiceModel;
+using System.Threading.Tasks;
+using System.Xml;
 using Models.Database;
+using Models.Sap;
 using MyClientLib;
 using Services.DbService;
 using Services.FileService;
+using Services.Sap;
 
 namespace CommonLib
 {
     public static class MyStatic
     {
 
-
         static readonly string dbAddr_http = ConfigurationManager.AppSettings["DB_SERVICE_HTTP"];
         static readonly string fileAddr_tcp = ConfigurationManager.AppSettings["FILE_SERVICE_TCP"];
-
+        static readonly string sapddr_http = ConfigurationManager.AppSettings["SAP_SERVICE_HTTP"];
 
         public static DbReturn GetDataSet(MyCommand cmd)
         {
@@ -37,15 +40,19 @@ namespace CommonLib
                 Console.WriteLine(rtn.ReturnCD);
 
                 //rtn.RtnBody.RemoveAttribute("xmlns"); // StringReader할 때 오류가 나서 추가함
-                Console.WriteLine(rtn.RtnBody?.OuterXml);
-                StringReader theReader = new StringReader(rtn.RtnBody.OuterXml);
+                if (rtn.RtnBody?.OuterXml != null)
+                {
+                    Console.WriteLine(rtn.RtnBody?.OuterXml);
+                    StringReader theReader = new StringReader(rtn.RtnBody?.OuterXml);
 
-                //DataSet ds = new DataSet();
-                ds.ReadXml(theReader, XmlReadMode.ReadSchema);
+                    //DataSet ds = new DataSet();
+                    ds.ReadXml(theReader, XmlReadMode.ReadSchema);
+
+                }
 
                 ((IClientChannel)_cli).Close();
-
                 myChannelFactory.Close();
+
                 return new DbReturn()
                 {
                     ReturnCD = rtn.ReturnCD,
@@ -100,7 +107,6 @@ namespace CommonLib
             }
 
         }
-
         public static CheckFileResponse CheckFile(string fileName) {
             try
             {
@@ -128,6 +134,29 @@ namespace CommonLib
                 throw;
             }
             
+        }
+        public static IFileService CheckFile_Channel()
+        {
+            try
+            {
+                //BasicHttpBinding myBinding = GetFileHttpBinding();
+                //EndpointAddress myEndpoint = new EndpointAddress(fileAddr_http);
+
+                NetTcpBinding myBinding = GetFileTcpBinding();
+                EndpointAddress myEndpoint = new EndpointAddress(fileAddr_tcp);
+
+                ChannelFactory<IFileService> myChannelFactory = new ChannelFactory<IFileService>(myBinding, myEndpoint);
+
+                // Create a channel.
+                IFileService _cli = myChannelFactory.CreateChannel();
+                
+                return _cli;
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
         }
         public static DownloadResponse DownloadFile(string fileName)
         {
@@ -167,6 +196,23 @@ namespace CommonLib
 
            
         }
+        
+        public static Task<DownloadResponse> DownloadFileAsync(string fileName)
+        {
+            try
+            {
+                //Func<FileData> function = new Func<FileData>(() => MyChannel.DownloadFile(request));
+                //return Task.Factory.StartNew<FileData>(function);
+
+                return Task.Factory.StartNew<DownloadResponse>(() => DownloadFile(fileName));
+
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+        }
         public static UploadResponse UploadFile(UploadFile uploadFile)
         {
             try
@@ -202,6 +248,46 @@ namespace CommonLib
 
         }
 
+        public static XmlElement SapInterface(string uri, string requestXml)
+        {
+            try { 
+                //DataSet ds = new DataSet();
+
+                BasicHttpBinding myBinding = GetSapBasicBinding();
+                EndpointAddress myEndpoint = new EndpointAddress(sapddr_http);
+                ChannelFactory<ISapService> myChannelFactory = new ChannelFactory<ISapService>(myBinding, myEndpoint);
+
+                // Create a channel.
+                ISapService _cli = myChannelFactory.CreateChannel();
+                SapRequest req = new SapRequest
+                {
+                     RequestUrl = uri,
+                     RequestXml = requestXml,
+                };
+                    
+                var rtn = _cli.Request_Sap( req).Result;
+
+                // Console.WriteLine(rtn.OuterXml);
+
+                //if (rtn?.OuterXml != null)
+                //{
+                //    StringReader theReader = new StringReader(rtn.OuterXml);
+                //    rtnDs.ReadXml(theReader, XmlReadMode.IgnoreSchema);
+                //}
+
+                ((IClientChannel)_cli).Close();
+                myChannelFactory.Close();
+
+                return rtn;
+              
+                //return rtnDs;
+            }
+            catch (Exception )
+            {
+                throw;  
+            }
+        }
+        
         private static BasicHttpBinding GetDbHttpBinding()
         {
             BasicHttpBinding binding = new BasicHttpBinding();
@@ -262,6 +348,21 @@ namespace CommonLib
             nettcpBinding.SendTimeout = TimeSpan.FromMinutes(15);
 
             return nettcpBinding;
+        }
+        public static BasicHttpBinding GetSapBasicBinding()
+        {
+            var basicBinding = new BasicHttpBinding();
+            basicBinding.Security.Mode = BasicHttpSecurityMode.None;
+            basicBinding.TransferMode = TransferMode.Streamed;
+            basicBinding.MaxReceivedMessageSize = 2147483647;
+
+            basicBinding.OpenTimeout = TimeSpan.FromMinutes(5);
+            basicBinding.CloseTimeout = TimeSpan.FromMinutes(5);
+            basicBinding.ReceiveTimeout = TimeSpan.FromMinutes(15);
+            basicBinding.SendTimeout = TimeSpan.FromMinutes(15);
+
+            return basicBinding;
+
         }
     }
 }

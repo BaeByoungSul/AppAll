@@ -8,7 +8,7 @@ namespace Services.Sap;
 public interface ISapService
 {
     [OperationContract]
-    public Task<XmlElement?> Request_Sap(SapRequest req);
+    Task<XmlElement?> Request_Sap(SapRequest req);
     
     
 }

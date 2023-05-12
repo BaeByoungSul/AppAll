@@ -6,9 +6,9 @@ namespace Models.Sap;
 public class SapRequest
 {
     [DataMember]
-    public string requestXml { get; set; } = string.Empty;
+    public string RequestXml { get; set; } = string.Empty;
 
     [DataMember]
-    public string requestUrl { get; set; } = string.Empty;
+    public string RequestUrl { get; set; } = string.Empty;
 
 }

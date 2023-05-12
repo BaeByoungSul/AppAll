@@ -44,9 +44,9 @@ public class SapService : ISapService
 
             var client = new HttpClient();
 
-            var reqMsg = new HttpRequestMessage(HttpMethod.Post, req.requestUrl);
+            var reqMsg = new HttpRequestMessage(HttpMethod.Post, req.RequestUrl);
 
-            var reqContent = new StringContent(req.requestXml, Encoding.UTF8, "text/xml");
+            var reqContent = new StringContent(req.RequestXml, Encoding.UTF8, "text/xml");
             reqMsg.Content = reqContent;
 
             reqMsg.Headers.Add("SOAPAction", SoapAction);
