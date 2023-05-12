@@ -12,8 +12,7 @@ namespace MyClientMain
     {
         [DllImport("User32.dll", SetLastError = true)]
         private static extern void SwitchToThisWindow(IntPtr hWnd, bool fAltTab);
-        [DllImport("User32.dll")]
-        public static extern Int32 SetForegroundWindow(int hWnd);
+
         // 걍 Assembly GUID로 
         private const string MutexName = "910fffc3-166d-4d7b-bc62-47252899bc43";
 
@@ -26,7 +25,7 @@ namespace MyClientMain
             // Set this variable to false if you do not want to request 
             // initial ownership of the named mutex.
             bool createdNew;
-            _ = new Mutex(true, MutexName,
+            Mutex mtex  = new Mutex(true, MutexName,
                                 out createdNew);
             if (createdNew)
             {

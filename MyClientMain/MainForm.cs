@@ -247,7 +247,7 @@ namespace MyMain
         /// <param name="e"></param>
         private void MyTabControl_SelectedIndexChanged(object sender, EventArgs e)
         {
-
+            if (tabCtrlMain.SelectedTab == null) return;
             // Assembly Version을 Status바에 표시
             DisplayAssemblyVersion(tabCtrlMain.SelectedTab);
             

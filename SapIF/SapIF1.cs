@@ -1,21 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Drawing;
 using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using CommonLib;
 using FarPoint.Win.Spread.CellType;
 using FarPoint.Win.Spread;
-using System.Net.Http.Headers;
-using System.Net.Http;
 using System.Net;
-using System.Runtime.Remoting.Metadata;
-using System.Xml.Linq;
-using System.Xml.Serialization;
+using System.Collections.Generic;
 
 namespace SapIF
 {
@@ -182,14 +172,32 @@ namespace SapIF
             try
             {
                 this.Cursor = Cursors.WaitCursor;
+                var lstWerks = txtWerks_t1.Text.Split(',');
+                var lstLgort = txtLgort_t1.Text.Split(',');
+                var lstMatnr = txtMatnr_t1.Text.Split(',');
 
-                PP0370_ReqBody reqBody = new PP0370_ReqBody
+                PP0370_ReqBody reqBody = new PP0370_ReqBody()
                 {
-                    Werks = new List<string> { txtWerks_t1.Text },
-                    Lgort = new List<string> { txtLgort_t1.Text },
-                    Matnr = new List<string> { txtMatnr_t1.Text }
+                    Werks = new List<string> (),
+                    Lgort = new List<string> (),
+                    Matnr = new List<string> ()
 
                 };
+
+                //};
+                foreach (var werks in lstWerks)
+                {
+                    reqBody.Werks.Add(werks.Trim());
+                };
+                foreach (var lgort in lstLgort)
+                {
+                    reqBody.Lgort.Add(lgort.Trim());
+                }
+                foreach (var matnr in lstMatnr)
+                {
+                    reqBody.Matnr.Add(matnr.Trim()  );
+                }
+
                 string request = SapUtil.PP0370_Req(reqBody);
 
                 this.fp_t1_1.Sheets[0].RowCount = 0;

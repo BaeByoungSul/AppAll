@@ -33,7 +33,6 @@
             this.fp_t1_1 = new FarPoint.Win.Spread.FpSpread();
             this.fp_t1_1_Sheet1 = new FarPoint.Win.Spread.SheetView();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
-            this.cboUri = new System.Windows.Forms.ComboBox();
             this.txtMatnr_t1 = new System.Windows.Forms.TextBox();
             this.label3 = new System.Windows.Forms.Label();
             this.txtLgort_t1 = new System.Windows.Forms.TextBox();
@@ -49,6 +48,7 @@
             this.rdoBtn_t3_1 = new System.Windows.Forms.RadioButton();
             this.fp_t3_1 = new FarPoint.Win.Spread.FpSpread();
             this.fp_t3_1_Sheet1 = new FarPoint.Win.Spread.SheetView();
+            this.label4 = new System.Windows.Forms.Label();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.fp_t1_1)).BeginInit();
@@ -154,11 +154,12 @@
             this.fp_t1_1_Sheet1.DefaultStyle.NoteIndicatorColor = System.Drawing.Color.Red;
             this.fp_t1_1_Sheet1.DefaultStyle.Parent = "DataAreaDefault";
             this.fp_t1_1_Sheet1.RowHeader.Columns.Default.Resizable = false;
+            this.fp_t1_1_Sheet1.RowHeader.Columns.Get(0).Width = 53F;
             this.fp_t1_1_Sheet1.ReferenceStyle = FarPoint.Win.Spread.Model.ReferenceStyle.A1;
             // 
             // groupBox2
             // 
-            this.groupBox2.Controls.Add(this.cboUri);
+            this.groupBox2.Controls.Add(this.label4);
             this.groupBox2.Controls.Add(this.txtMatnr_t1);
             this.groupBox2.Controls.Add(this.label3);
             this.groupBox2.Controls.Add(this.txtLgort_t1);
@@ -173,29 +174,17 @@
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "조회조건";
             // 
-            // cboUri
-            // 
-            this.cboUri.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cboUri.FormattingEnabled = true;
-            this.cboUri.Items.AddRange(new object[] {
-            "QAS",
-            "PRD"});
-            this.cboUri.Location = new System.Drawing.Point(602, 21);
-            this.cboUri.Name = "cboUri";
-            this.cboUri.Size = new System.Drawing.Size(95, 20);
-            this.cboUri.TabIndex = 38;
-            // 
             // txtMatnr_t1
             // 
-            this.txtMatnr_t1.Location = new System.Drawing.Point(465, 20);
+            this.txtMatnr_t1.Location = new System.Drawing.Point(539, 20);
             this.txtMatnr_t1.Name = "txtMatnr_t1";
-            this.txtMatnr_t1.Size = new System.Drawing.Size(107, 21);
+            this.txtMatnr_t1.Size = new System.Drawing.Size(267, 21);
             this.txtMatnr_t1.TabIndex = 37;
             // 
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(409, 24);
+            this.label3.Location = new System.Drawing.Point(483, 23);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(53, 12);
             this.label3.TabIndex = 36;
@@ -203,7 +192,7 @@
             // 
             // txtLgort_t1
             // 
-            this.txtLgort_t1.Location = new System.Drawing.Point(237, 20);
+            this.txtLgort_t1.Location = new System.Drawing.Point(332, 20);
             this.txtLgort_t1.Name = "txtLgort_t1";
             this.txtLgort_t1.Size = new System.Drawing.Size(135, 21);
             this.txtLgort_t1.TabIndex = 35;
@@ -211,7 +200,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(202, 22);
+            this.label2.Location = new System.Drawing.Point(297, 23);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(29, 12);
             this.label2.TabIndex = 34;
@@ -221,7 +210,7 @@
             // 
             this.txtWerks_t1.Location = new System.Drawing.Point(85, 20);
             this.txtWerks_t1.Name = "txtWerks_t1";
-            this.txtWerks_t1.Size = new System.Drawing.Size(88, 21);
+            this.txtWerks_t1.Size = new System.Drawing.Size(137, 21);
             this.txtWerks_t1.TabIndex = 33;
             // 
             // label1
@@ -342,6 +331,15 @@
             this.fp_t3_1_Sheet1.RowHeader.Columns.Default.Resizable = false;
             this.fp_t3_1_Sheet1.ReferenceStyle = FarPoint.Win.Spread.Model.ReferenceStyle.A1;
             // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(834, 23);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(55, 12);
+            this.label4.TabIndex = 38;
+            this.label4.Text = "구분자(,)";
+            // 
             // SapIF1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 12F);
@@ -374,7 +372,6 @@
         private FarPoint.Win.Spread.FpSpread fp_t1_1;
         private FarPoint.Win.Spread.SheetView fp_t1_1_Sheet1;
         private System.Windows.Forms.GroupBox groupBox2;
-        private System.Windows.Forms.ComboBox cboUri;
         private System.Windows.Forms.TextBox txtMatnr_t1;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.TextBox txtLgort_t1;
@@ -390,5 +387,6 @@
         private System.Windows.Forms.RadioButton rdoBtn_t3_1;
         private FarPoint.Win.Spread.FpSpread fp_t3_1;
         private FarPoint.Win.Spread.SheetView fp_t3_1_Sheet1;
+        private System.Windows.Forms.Label label4;
     }
 }
