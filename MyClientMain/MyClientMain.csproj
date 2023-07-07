@@ -86,6 +86,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\FileTest\FileTest.csproj">
+      <Project>{c3d0baaf-aa22-4053-aa0d-fda62fb2323c}</Project>
+      <Name>FileTest</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Huizhou\Huizhou.csproj">
       <Project>{19c5df1d-0647-4ffb-87ee-3bce8eacb877}</Project>
       <Name>Huizhou</Name>

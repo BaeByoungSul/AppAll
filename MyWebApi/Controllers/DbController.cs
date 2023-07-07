@@ -15,7 +15,7 @@ public class DbController : ControllerBase
     {
         _dbService = dbService;
     }
-    
+
     [HttpPost("ExecNonQuery")]
     public IActionResult ExecNonQuery([FromBody] List<MyCommand> cmds)
     {

@@ -167,6 +167,7 @@ namespace SapIF
             }
         }
         private static readonly string PP0370_QAS = "http://infheaidrdb01.kolon.com:51000/XISOAPAdapter/MessageServlet?senderParty=&senderService=INF_ESP_QAS&receiverParty=&receiverService=&interface=SI_GRP_PP0370_SO&interfaceNamespace=http://grpeccpp.esp.com/infesp";
+        private static readonly string PP0370_PRD = "http://grpeai.kolon.com:50000/XISOAPAdapter/MessageServlet?senderParty=&senderService=INF_ESP_PRD&receiverParty=&receiverService=&interface=SI_GRP_PP0370_SO&interfaceNamespace=http://grpeccpp.esp.com/infesp";
         private  void Search_T1()
         {
             try
@@ -203,6 +204,7 @@ namespace SapIF
                 this.fp_t1_1.Sheets[0].RowCount = 0;
 
                 var rtn = MyStatic.SapInterface(PP0370_QAS, request);
+                //var rtn = MyStatic.SapInterface(PP0370_PRD, request);
                 DataSet ds = SapUtil.PP0370_Response(rtn);
 
                 

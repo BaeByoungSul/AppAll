@@ -34,12 +34,12 @@
             this.btn_file = new System.Windows.Forms.Button();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
+            this.label1 = new System.Windows.Forms.Label();
+            this.progBar_t1_2 = new System.Windows.Forms.ProgressBar();
             this.progBar_t1 = new System.Windows.Forms.ProgressBar();
             this.txtFileName_t1 = new System.Windows.Forms.TextBox();
             this.btn_t1_2 = new System.Windows.Forms.Button();
             this.btnDownload_t1 = new System.Windows.Forms.Button();
-            this.progBar_t1_2 = new System.Windows.Forms.ProgressBar();
-            this.label1 = new System.Windows.Forms.Label();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.SuspendLayout();
@@ -111,6 +111,23 @@
             this.tabPage1.Text = "File Sync";
             this.tabPage1.UseVisualStyleBackColor = true;
             // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(576, 329);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(51, 12);
+            this.label1.TabIndex = 20;
+            this.label1.Text = "시간(초)";
+            // 
+            // progBar_t1_2
+            // 
+            this.progBar_t1_2.BackColor = System.Drawing.Color.BlueViolet;
+            this.progBar_t1_2.Location = new System.Drawing.Point(40, 211);
+            this.progBar_t1_2.Name = "progBar_t1_2";
+            this.progBar_t1_2.Size = new System.Drawing.Size(710, 23);
+            this.progBar_t1_2.TabIndex = 14;
+            // 
             // progBar_t1
             // 
             this.progBar_t1.BackColor = System.Drawing.Color.BlueViolet;
@@ -145,23 +162,6 @@
             this.btnDownload_t1.Text = "Download";
             this.btnDownload_t1.UseVisualStyleBackColor = true;
             this.btnDownload_t1.Click += new System.EventHandler(this.btnDownload_t1_Click);
-            // 
-            // progBar_t1_2
-            // 
-            this.progBar_t1_2.BackColor = System.Drawing.Color.BlueViolet;
-            this.progBar_t1_2.Location = new System.Drawing.Point(40, 211);
-            this.progBar_t1_2.Name = "progBar_t1_2";
-            this.progBar_t1_2.Size = new System.Drawing.Size(710, 23);
-            this.progBar_t1_2.TabIndex = 14;
-            // 
-            // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(576, 329);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(51, 12);
-            this.label1.TabIndex = 20;
-            this.label1.Text = "시간(초)";
             // 
             // File_01
             // 

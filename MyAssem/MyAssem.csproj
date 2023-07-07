@@ -4,10 +4,10 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{C3D0BAAF-AA22-4053-AA0D-FDA62FB2323C}</ProjectGuid>
+    <ProjectGuid>{D7FB7260-BB7E-4798-992A-0FBBF262A7D1}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>FileTest</RootNamespace>
-    <AssemblyName>FileTest</AssemblyName>
+    <RootNamespace>MyAssem</RootNamespace>
+    <AssemblyName>MyAssem</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -30,14 +30,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="FarPoint.Win, Version=5.0.3511.2008, Culture=neutral, PublicKeyToken=327c3516b1b18457, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Program Files (x86)\GrapeCity\Spread.WinForms.5.dotNet35\v5.0.3511\Bin\FarPoint.Win.dll</HintPath>
-    </Reference>
-    <Reference Include="FarPoint.Win.Spread, Version=5.0.3511.2008, Culture=neutral, PublicKeyToken=327c3516b1b18457, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Program Files (x86)\GrapeCity\Spread.WinForms.5.dotNet35\v5.0.3511\Bin\FarPoint.Win.Spread.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -50,35 +42,26 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Etc01_Test.cs">
+    <Compile Include="UserControl1.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Etc01_Test.Designer.cs">
-      <DependentUpon>Etc01_Test.cs</DependentUpon>
-    </Compile>
-    <Compile Include="File_01.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="File_01.Designer.cs">
-      <DependentUpon>File_01.cs</DependentUpon>
+    <Compile Include="UserControl1.Designer.cs">
+      <DependentUpon>UserControl1.cs</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="UserControl2.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UserControl2.Designer.cs">
+      <DependentUpon>UserControl2.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UserControl3.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UserControl3.Designer.cs">
+      <DependentUpon>UserControl3.cs</DependentUpon>
+    </Compile>
     <Service Include="{94E38DFF-614B-4cbd-B67C-F211BB35CE8B}" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Etc01_Test.resx">
-      <DependentUpon>Etc01_Test.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="File_01.resx">
-      <DependentUpon>File_01.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Properties\licenses.licx" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\MyClientLib\MyClientLib.csproj">
-      <Project>{ba326969-5c41-43ca-b703-8fbbc5c7b7f2}</Project>
-      <Name>MyClientLib</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
