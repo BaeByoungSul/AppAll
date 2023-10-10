@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
+﻿using Mammoth;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.IdentityModel.Tokens;
 using Services.FileService;
 using System.ComponentModel.DataAnnotations;
 
@@ -20,24 +21,15 @@ public class FileController : ControllerBase
         _env = environment;
         _fileService = fileService;
     }
-    [HttpPost("UploadTest")]
-    public IActionResult UploadTest([Required] List<IFormFile> formFiles, string subDirectory)
+
+    private static string GetContentType( string fileName)
     {
-        try
-        {
-            Console.WriteLine(subDirectory);
-            //_fileService.UploadFile(formFiles, subDirectory);
-            foreach (var item in formFiles)
-            {
-                Console.WriteLine(item.FileName);
-            }
-            return Ok();
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        _ = new FileExtensionContentTypeProvider().TryGetContentType(fileName, out string? contentType);
+        return contentType ?? "application/octet-stream";
     }
+
+
+    
     /// <summary>
     /// subdirectory path : dir1?dir2?dir3 늘 ?로 병합이 되어 argument로 넘어온다
     /// </summary>
@@ -84,7 +76,14 @@ public class FileController : ControllerBase
 
             var memory = await _fileService.DownloadFileAsync(fileName, serverPath);
 
-            return File(memory, "application/octet-stream", fileName); // attachment
+            return File(memory, GetContentType(fileName), fileName); // attachment
+
+            //return new FileStreamResult(memory, GetContentType(fileName))
+            //{
+            //    FileDownloadName = fileName
+            //} ;
+
+            //return File(memory, "application/msword", fileName); // attachment
             //return File(memory, "application/octet-stream"); // inline
 
         }
@@ -102,7 +101,7 @@ public class FileController : ControllerBase
     /// <param name="subDirectory"></param>
     /// <returns></returns>
     [HttpGet("GetDirInfo")]
-    public IActionResult GetDirInfo(string? subDirectory)
+    public IActionResult GetDirInfo(string? subDirectory, string? fileFilter)
     {
         try
         {
@@ -140,7 +139,22 @@ public class FileController : ControllerBase
 
 
             // 서버폴더의 파일경로 및 파일명
-            string[] filePaths = Directory.GetFiles(serverDirectory);
+            List<string> listFilePath = new List<string>();
+            if (fileFilter.IsNullOrEmpty())
+            {
+                //filePaths = Directory.GetFiles(serverDirectory);
+                listFilePath.AddRange(Directory.GetFiles(serverDirectory,"*.*"));
+            }
+            else
+            {
+                var searchPatterns = fileFilter?.Split(',');
+                for (int i = 0; i < searchPatterns?.Length; i++)
+                {
+                    listFilePath.AddRange(Directory.GetFiles(serverDirectory, searchPatterns[i]));
+                }
+            }
+            string[] filePaths = listFilePath.ToArray();
+
 
             // 해당 폴더의 파일목록
             var fileInfos = filePaths.Select(s => new
@@ -263,6 +277,7 @@ public class FileController : ControllerBase
     private string GetPathString(string? joinPaths)
     {
         var splitPaths = joinPaths?.Split('?');
+        //var splitPaths = joinPaths?.Split(':');
 
         string? fromRootPath = null;
         foreach (string path in splitPaths ?? Enumerable.Empty<string>())
@@ -281,4 +296,111 @@ public class FileController : ControllerBase
     }
 
 
+    [HttpGet("GetDocHtml")]
+    public IActionResult GetDocHtml([Required] string fileName, string? subDirectory)
+    {
+        var serverPath = GetPathString(subDirectory);
+
+        string filePath = Path.Combine(serverPath, fileName);
+
+        if (!System.IO.File.Exists(filePath)) return BadRequest();
+        //return base.Content("<p>Not Found</p>", "text/html"); ;
+
+        var converter = new DocumentConverter();
+        var result = converter.ConvertToHtml(filePath);
+        var html = result.Value; // The generated HTML
+        var warnings = result.Warnings; // Any warnings during conversion
+        Console.WriteLine(warnings);
+        return base.Content(html, "text/html");
+    }
+    #region Test 
+
+    [HttpGet("GetPdf")]
+    public async Task<IActionResult> GetPdfAsync([Required] string fileName, string? subDirectory)
+    {
+        var serverPath = GetPathString(subDirectory);
+
+        string filePath = Path.Combine(serverPath, fileName);
+
+        if (!System.IO.File.Exists(filePath))
+            return BadRequest();
+
+        var ms = await _fileService.DownloadFileAsync(fileName, serverPath);
+        //return new FileStreamResult(ms, "application/pdf");
+
+
+        return new FileStreamResult(ms, GetContentType(fileName));
+
+        //var bytes = System.IO.File.ReadAllBytes(filePath);
+        //return new FileContentResult(bytes, "application/pdf");
+    }
+    [HttpGet("GetDoc2")]
+    public async Task<IActionResult> GetDoc2Async([Required] string fileName, string? subDirectory)
+    {
+        var serverPath = GetPathString(subDirectory);
+
+        string filePath = Path.Combine(serverPath, fileName);
+
+        if (!System.IO.File.Exists(filePath))
+            return BadRequest();
+
+        //var ms = await _fileService.DownloadFileAsync(fileName, serverPath);
+
+        //return new FileStreamResult(ms, GetContentType(fileName))  ;
+
+        byte[] bytes = System.IO.File.ReadAllBytes(filePath );
+        return File(bytes, GetContentType(fileName),true );
+
+    }
+
+    [HttpGet("GetDoc")]
+    public async Task<IActionResult> GetDoc()
+    {
+        var cd = new System.Net.Mime.ContentDisposition
+        {
+            FileName = "bbb.docx",
+
+            // always prompt the user for downloading, set to true if you want 
+            // the browser to try to show the file inline
+            Inline = false,
+        };
+        //Response.AppendHeader("Content-Disposition", cd.ToString());
+        
+        var sourcetDir = Path.Combine(_env.ContentRootPath, "Files");
+        string filePath = sourcetDir + "/" + "bbb.docx";
+
+        var stream = new FileStream(
+                    filePath,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.ReadWrite);
+        return new FileStreamResult(stream, GetContentType("bbb.docx"));
+
+    }
+
+  
+    [HttpPost("UploadTest")]
+    public IActionResult UploadTest([Required] List<IFormFile> formFiles, string subDirectory)
+    {
+        try
+        {
+            Console.WriteLine(subDirectory);
+            //_fileService.UploadFile(formFiles, subDirectory);
+            foreach (var item in formFiles)
+            {
+                Console.WriteLine(item.FileName);
+            }
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+    #endregion Test
+
+}
+public class DocxModel
+{
+    public byte[] testDocx { get; set; }
 }

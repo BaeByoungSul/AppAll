@@ -31,7 +31,9 @@ builder.Services
     .AddNewtonsoftJson(opt =>
     {
         opt.SerializerSettings.ContractResolver = new DefaultContractResolver();
-    });
+    })
+   ;
+    
 //.AddXmlSerializerFormatters();
 
 
@@ -106,13 +108,15 @@ app.UseSwaggerUI();
 }
 */
 
-app.UseHttpsRedirection();
+
 
 // 2023.01.31. angular에서 header를 가져오지 못해서..Content-Disposition 추가
 app.UseCors(policy => policy.AllowAnyOrigin()
                             .AllowAnyMethod()
                             .AllowAnyHeader()
                             .WithExposedHeaders("Content-Disposition"));
+
+app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
