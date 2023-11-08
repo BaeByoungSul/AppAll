@@ -12,6 +12,7 @@ using Services.FileService;
 using Services.SapService;
 using Services.TokenService;
 using Services.SapWcfService;
+using MyWebApi.Models.Auth;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,6 +46,11 @@ var jwtConfig = builder.Configuration
         .GetSection("Jwt")
         .Get<JwtConfig>();
 builder.Services.AddSingleton(jwtConfig);
+
+var angularConfig = builder.Configuration
+        .GetSection("AngularApp")
+        .Get<AngularConfig>();
+builder.Services.AddSingleton(angularConfig);
 
 
 //ClockSkew: 토큰 만기 시간이 지켜지지 않아서 추가..(from stackOverflow )

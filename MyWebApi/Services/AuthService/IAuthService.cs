@@ -19,6 +19,8 @@ public interface IAuthService
     //UserInfo? Login(string username, string password);
     List<UserInfo> GetAllUser();
     UserInfo? GetUserByEmail(string username);
+
+    UserInfo? GetUserByRefreshToken(string refreshToken);
     void UpdateRefreshToken(UserInfo user);
     
     DataSet MyGetDs(SqlCommand cmd);

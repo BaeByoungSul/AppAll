@@ -1,4 +1,4 @@
-﻿using Mammoth;
+﻿//using Mammoth;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.IdentityModel.Tokens;
@@ -296,23 +296,23 @@ public class FileController : ControllerBase
     }
 
 
-    [HttpGet("GetDocHtml")]
-    public IActionResult GetDocHtml([Required] string fileName, string? subDirectory)
-    {
-        var serverPath = GetPathString(subDirectory);
+    //[HttpGet("GetDocHtml")]
+    //public IActionResult GetDocHtml([Required] string fileName, string? subDirectory)
+    //{
+    //    var serverPath = GetPathString(subDirectory);
 
-        string filePath = Path.Combine(serverPath, fileName);
+    //    string filePath = Path.Combine(serverPath, fileName);
 
-        if (!System.IO.File.Exists(filePath)) return BadRequest();
-        //return base.Content("<p>Not Found</p>", "text/html"); ;
+    //    if (!System.IO.File.Exists(filePath)) return BadRequest();
+    //    //return base.Content("<p>Not Found</p>", "text/html"); ;
 
-        var converter = new DocumentConverter();
-        var result = converter.ConvertToHtml(filePath);
-        var html = result.Value; // The generated HTML
-        var warnings = result.Warnings; // Any warnings during conversion
-        Console.WriteLine(warnings);
-        return base.Content(html, "text/html");
-    }
+    //    var converter = new DocumentConverter();
+    //    var result = converter.ConvertToHtml(filePath);
+    //    var html = result.Value; // The generated HTML
+    //    var warnings = result.Warnings; // Any warnings during conversion
+    //    Console.WriteLine(warnings);
+    //    return base.Content(html, "text/html");
+    //}
     #region Test 
 
     [HttpGet("GetPdf")]

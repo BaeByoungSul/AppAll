@@ -30,6 +30,7 @@ public class JwtTokenService
             issuer: _jwtconfig.Issuer,
             audience: _jwtconfig.Audience,
             expires: DateTime.UtcNow.AddMinutes(_jwtconfig.JwtExpiryMinites),
+            //expires: DateTime.Now.AddMinutes(_jwtconfig.JwtExpiryMinites),
             claims: claims,
             signingCredentials: credentials
         );

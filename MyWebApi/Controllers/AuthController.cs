@@ -8,8 +8,14 @@ using Services.TokenService;
 using Services;
 using System.Security.Cryptography;
 using Services.EmailService;
+using Microsoft.IdentityModel.Tokens;
+using MyWebApi.Models.Auth;
 
 namespace MyWebApi.Controllers;
+/// <summary>
+/// 2023.10.25 refresh Token은 login할 때만 생성한다. RefreshToken 함주에서는 생성하지 않음
+/// 2023.10.25 Login할 때 SetRefreshToken이 어떤 기능을 하는지 몰라서 일단 주석처리
+/// </summary>
 
 [Route("api/[controller]")]
 [ApiController]
@@ -17,16 +23,19 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
     private readonly IEmailService _emailService;
+    private readonly AngularConfig _angularconfig;
     private readonly JwtTokenService _jwtTokenService;
 
     public AuthController(
         IAuthService authService,
         IEmailService emailService,
-        JwtTokenService jwtTokenService)
+        JwtTokenService jwtTokenService,
+        AngularConfig angularConfig)
     {
         _authService = authService;
         _emailService = emailService;
-        //_jwtconfig = jwtconfig; 
+        _angularconfig = angularConfig; 
+        
         _jwtTokenService = jwtTokenService;
     }
 
@@ -38,7 +47,7 @@ public class AuthController : ControllerBase
             var user = _authService.GetUserByEmail(model.Email);
             if (user != null)
             {
-                return BadRequest("User email '" + model.Email + "' is already taken");
+                return BadRequest("User email '" + model.Email + "' is already registered");
             }
 
             var regUser = _authService.Register(model);
@@ -57,7 +66,9 @@ public class AuthController : ControllerBase
             //        , "Auth"
             //        , param
             //        , Request.Scheme);
-            var callback = QueryHelpers.AddQueryString("http://localhost:4200/auth/verify-user", param);
+            //var callback = QueryHelpers.AddQueryString("http://localhost:4200/auth/verify-user", param);
+            var callback = QueryHelpers.AddQueryString(_angularconfig.UserVerifyUrl, param);
+
             EmailDto emailContent = new EmailDto();
             emailContent.Subject = "Veryfy User Register Email";
             emailContent.To = regUser.Email;
@@ -108,6 +119,10 @@ public class AuthController : ControllerBase
             {
                 return BadRequest("Invalid token.");
             }
+            if (user.VerifiedDate != null)
+            {
+                return BadRequest("This user has been already verified .");
+            }
             _authService.UpdateUser_VerifiedDate(model.Email);
 
             return Ok();
@@ -135,8 +150,8 @@ public class AuthController : ControllerBase
             var user = _authService.GetUserByEmail(_userData.Email);
             if (user == null)
             {
-                //return BadRequest("Unregistered email ");
-                return Unauthorized("Unregistered email");
+                return BadRequest("Unregistered email ");
+                //return Unauthorized("Unregistered email");
             }
             if (!_authService.VerifyPasswordHash(_userData.Password, user.PasswordHash, user.PasswordSalt))
             {
@@ -153,7 +168,7 @@ public class AuthController : ControllerBase
             user.RefreshTokenExpiryTime = refreshToken.Expires;
 
             _authService.UpdateRefreshToken(user);
-            SetRefreshToken(refreshToken);
+            // SetRefreshToken(refreshToken);
 
             return Ok(new
             {
@@ -190,7 +205,10 @@ public class AuthController : ControllerBase
                 { "token", token }, { "email", email }
             };
 
-            var callback = QueryHelpers.AddQueryString("http://localhost:4200/auth/reset-password", param);
+            //var callback = QueryHelpers.AddQueryString("http://localhost:4200/auth/reset-password", param);
+
+            var callback = QueryHelpers.AddQueryString(_angularconfig.ResetPasswordUrl, param);
+
             EmailDto emailContent = new EmailDto();
             emailContent.Subject = "Reset password email";
             emailContent.To = email;
@@ -232,52 +250,87 @@ public class AuthController : ControllerBase
         return Ok();
     }
 
-    [HttpPost("RefreshToken")]
-    public ActionResult RefreshToken(Tokens token)
+    [HttpGet("RefreshToken")]
+    public ActionResult RefreshToken(string refreshToken)
+    {
+        
+        if (refreshToken.IsNullOrEmpty())
+            return BadRequest("Invalid Refresh Token.");
+
+        //if (jwtsecurity.ValidTo > DateTime.UtcNow)
+        //    return BadRequest("Access token has not expired.");
+
+        var user = _authService.GetUserByRefreshToken(refreshToken);
+        if (user == null)
+            return BadRequest("Invalid User.");
+
+        //var refreshToken = Request.Cookies["refreshToken"];
+        if (user.RefreshToken == null)
+            return BadRequest("Invalid Refresh Token.");
+
+        //if (!user.RefreshToken.Equals(refrshToken))
+        //{
+        //    return BadRequest("Invalid Refresh Token.");
+        //}
+
+        if (user.RefreshTokenExpiryTime < DateTime.Now)
+            return BadRequest("Token expired.");
+
+        var accessToken = _jwtTokenService.CreateToken(user);
+
+        return Ok(new
+        {
+            AccessToken = accessToken
+        });
+
+    }
+    [HttpPost("RefreshToken_bak")]
+    public ActionResult RefreshToken_bak(Tokens token)
     {
         if (token.AccessToken == "")
-            return Unauthorized("Invalid Access Token.");
+            return BadRequest("Invalid Access Token.");
+
         if (token.RefreshToken == "")
-            return Unauthorized("Invalid Refresh Token.");
+            return BadRequest("Invalid Refresh Token.");
 
         var jwtsecurity = _jwtTokenService.ValidateJwtToken(token.AccessToken);
         if (jwtsecurity == null)
-            return Unauthorized("Invalid Access_Token Token.");
+            return BadRequest("Invalid Access_Token Token.");
 
         if (jwtsecurity.ValidTo > DateTime.UtcNow)
-            return Unauthorized("Access token has not expired.");
+            return BadRequest("Access token has not expired.");
 
         var userEmail = jwtsecurity.Claims.First(x => x.Type == "emailaddress").Value;
         if (userEmail == null)
-            return Unauthorized("Invalid Access Token.");
+            return BadRequest("Invalid Access Token.");
 
 
         var user = _authService.GetUserByEmail(userEmail);
         if (user == null)
-            return Unauthorized("Invalid User.");
+            return BadRequest("Invalid User.");
 
         //var refreshToken = Request.Cookies["refreshToken"];
         if (user.RefreshToken == null)
-            return Unauthorized("Invalid Refresh Token.");
+            return BadRequest("Invalid Refresh Token.");
 
         if (!user.RefreshToken.Equals(token.RefreshToken))
         {
-            return Unauthorized("Invalid Refresh Token.");
+            return BadRequest("Invalid Refresh Token.");
         }
-        else if (user.ResetTokenExpires < DateTime.Now)
+        else if (user.RefreshTokenExpiryTime < DateTime.Now)
         {
-            return Unauthorized("Token expired.");
+            return BadRequest("Token expired.");
         }
 
         var accessToken = _jwtTokenService.CreateToken(user);
-        var refreshToken = _jwtTokenService.GenerateRefreshToken();
 
+        var refreshToken = _jwtTokenService.GenerateRefreshToken();
         user.RefreshToken = refreshToken.Token;
         user.RefreshTokenExpiryTime = refreshToken.Expires;
 
         _authService.UpdateRefreshToken(user);
 
-        //SetRefreshToken(refreshToken);
+
 
         return Ok(new
         {

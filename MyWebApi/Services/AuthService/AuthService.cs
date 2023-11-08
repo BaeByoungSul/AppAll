@@ -10,6 +10,7 @@ using System.Net.Mail;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Transactions;
+using MyWebApi.Models.Auth;
 
 namespace Services.AuthService;
 public class AuthService : IAuthService
@@ -18,7 +19,8 @@ public class AuthService : IAuthService
     
 
     public AuthService(
-        List<ConnectDBInfo> dBInfos )
+        List<ConnectDBInfo> dBInfos
+        )
     {
         //Console.WriteLine( connectDBInfo);
         _connInfo = dBInfos.Find(x => x.ConnectionName == "BSBAE");
@@ -149,8 +151,52 @@ public class AuthService : IAuthService
 
       
     }
+    public UserInfo? GetUserByRefreshToken(string refreshToken)
+    {
+        try
+        {
+            var cmd = new SqlCommand();
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.CommandText = "WebApi..USP_UserInfo_Sel2";
+            cmd.Parameters.AddWithValue("@RefreshToken ", refreshToken);
 
-    
+            DataSet ds = MyGetDs(cmd);
+            if (ds.Tables.Count <= 0) return null;
+            if (ds.Tables[0].Rows.Count <= 0) return null;
+
+            //DataTable dt = ds.Tables[0];
+            DataRow dr = ds.Tables[0].Rows[0];
+            UserInfo user = new UserInfo()
+            {
+                Email = dr["EmailAddress"].ToString() ?? string.Empty,
+                PasswordHash = (byte[])dr["PasswordHash"],
+                PasswordSalt = (byte[])dr["PasswordSalt"],
+                VerificationToken = dr["VerificationToken"].ToString(),
+                VerifiedDate = (dr["VerifiedDate"] == DBNull.Value) ? null : (DateTime)dr["VerifiedDate"],
+                FirstName = dr["FirstName"].ToString() ?? string.Empty,
+                LastName = dr["LastName"].ToString() ?? string.Empty,
+                DisplayName = dr["DisplayName"].ToString() ?? string.Empty,
+                MainRoles = dr["MainRoles"].ToString() ?? string.Empty,
+                Roles = dr["Roles"].ToString() ?? string.Empty,
+                UserHome = dr["UserHome"].ToString() ?? string.Empty,
+                RefreshToken = dr["RefreshToken"].ToString(),
+                RefreshTokenExpiryTime = (dr["RefreshTokenExpiryTime"] == DBNull.Value) ? null : (DateTime)dr["RefreshTokenExpiryTime"],
+                PasswordResetToken = dr["PasswordResetToken"].ToString(),
+                ResetTokenExpires = (dr["ResetTokenExpires"] == DBNull.Value) ? null : (DateTime)dr["ResetTokenExpires"],
+            };
+
+
+            return user;
+        }
+        catch (Exception)
+        {
+            throw;
+        }
+
+
+    }
+
+
     public void UpdateRefreshToken(UserInfo model)
     {
 

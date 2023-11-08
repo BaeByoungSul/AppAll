@@ -12,9 +12,9 @@ public class UserRegister
         
     [Required, Compare("Password")]
     public string ConfirmPassword { get; set; } = string.Empty;
-    public string FirstName { get; set; } = string.Empty;
-    public string LastName { get; set; } = string.Empty;
-    public string DisplayName { get; set; }= string.Empty;
+    public string? FirstName { get; set; } 
+    public string? LastName { get; set; }
+    public string? DisplayName { get; set; }
 }
     
 
