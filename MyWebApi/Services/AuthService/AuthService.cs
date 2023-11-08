@@ -11,19 +11,21 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Transactions;
 using MyWebApi.Models.Auth;
+using Org.BouncyCastle.Bcpg.OpenPgp;
 
 namespace Services.AuthService;
 public class AuthService : IAuthService
 {
     private readonly ConnectDBInfo? _connInfo;
-    
+
+    private readonly string _apiDbName = "ApiDbServe";
 
     public AuthService(
         List<ConnectDBInfo> dBInfos
         )
     {
         //Console.WriteLine( connectDBInfo);
-        _connInfo = dBInfos.Find(x => x.ConnectionName == "BSBAE");
+        _connInfo = dBInfos.Find(x => x.ConnectionName == _apiDbName);
         if (_connInfo == null)
             throw new Exception("There's no Connection Info.");
         
