@@ -228,7 +228,15 @@ public class FileController : ControllerBase
             {
                 foreach (var item in fileFilter ?? Enumerable.Empty<string>())
                 {
-                    filesPathList.AddRange(Directory.GetFiles(serverDirectory, item));
+                    //filesPathList.AddRange(Directory.GetFiles(serverDirectory, item));
+                    DirectoryInfo directory = new DirectoryInfo(serverDirectory);
+                    FileInfo[] files = directory.GetFiles(item);
+                    var filtered = files.Where(f => !f.Attributes.HasFlag(FileAttributes.Hidden));
+
+                    foreach (var f in filtered)
+                    {
+                        filesPathList.Add(f.FullName);
+                    }
                 }
             }
 
