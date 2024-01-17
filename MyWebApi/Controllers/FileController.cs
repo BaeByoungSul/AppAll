@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.IdentityModel.Tokens;
 using Services.FileService;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 
 namespace MyWebApi.Controllers;
 
@@ -212,7 +213,16 @@ public class FileController : ControllerBase
             List<string> filesPathList = new List<string>();
             if (fileFilter == null || fileFilter.Length <= 0)
             {
-                filesPathList.AddRange(Directory.GetFiles(serverDirectory, "*.*"));
+                //filesPathList.AddRange(Directory.GetFiles(serverDirectory, "*.*"));
+                DirectoryInfo directory = new DirectoryInfo(serverDirectory);
+                FileInfo[] files = directory.GetFiles();
+                var filtered = files.Where(f => !f.Attributes.HasFlag(FileAttributes.Hidden));
+
+                foreach (var f in filtered)
+                {
+                    filesPathList.Add(f.FullName);
+                }
+                
             }
             else
             {
