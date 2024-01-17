@@ -40,6 +40,8 @@
             this.txtFileName_t1 = new System.Windows.Forms.TextBox();
             this.btn_t1_2 = new System.Windows.Forms.Button();
             this.btnDownload_t1 = new System.Windows.Forms.Button();
+            this.button1 = new System.Windows.Forms.Button();
+            this.cbo1 = new System.Windows.Forms.ComboBox();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.SuspendLayout();
@@ -93,6 +95,8 @@
             // 
             // tabPage1
             // 
+            this.tabPage1.Controls.Add(this.cbo1);
+            this.tabPage1.Controls.Add(this.button1);
             this.tabPage1.Controls.Add(this.label1);
             this.tabPage1.Controls.Add(this.txt_fileName);
             this.tabPage1.Controls.Add(this.label2);
@@ -163,6 +167,28 @@
             this.btnDownload_t1.UseVisualStyleBackColor = true;
             this.btnDownload_t1.Click += new System.EventHandler(this.btnDownload_t1_Click);
             // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(40, 320);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(176, 70);
+            this.button1.TabIndex = 21;
+            this.button1.Text = "Zebra Print";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
+            // 
+            // cbo1
+            // 
+            this.cbo1.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cbo1.FormattingEnabled = true;
+            this.cbo1.Items.AddRange(new object[] {
+            "Data Matrix",
+            "QR Code"});
+            this.cbo1.Location = new System.Drawing.Point(237, 349);
+            this.cbo1.Name = "cbo1";
+            this.cbo1.Size = new System.Drawing.Size(121, 20);
+            this.cbo1.TabIndex = 22;
+            // 
             // File_01
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 12F);
@@ -191,5 +217,7 @@
         private System.Windows.Forms.Button btnDownload_t1;
         private System.Windows.Forms.ProgressBar progBar_t1_2;
         private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.ComboBox cbo1;
     }
 }

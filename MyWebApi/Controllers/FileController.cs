@@ -1,4 +1,5 @@
 ﻿//using Mammoth;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.IdentityModel.Tokens;
@@ -28,8 +29,6 @@ public class FileController : ControllerBase
         return contentType ?? "application/octet-stream";
     }
 
-
-    
     /// <summary>
     /// subdirectory path : dir1?dir2?dir3 늘 ?로 병합이 되어 argument로 넘어온다
     /// </summary>
@@ -46,12 +45,12 @@ public class FileController : ControllerBase
             {
                 Directory.CreateDirectory(Path.Combine(_env.ContentRootPath, "Files"));
             }
-            var serverPath = GetPathString(subDirectory);
+            var serverPath = GetDirPathString(subDirectory);
 
-            if (!Directory.Exists(serverPath))
-            {
-                return BadRequest("Server Directory Not Exists");
-            }
+            //if (!Directory.Exists(serverPath))
+            //{
+            //    return BadRequest("Server Directory Not Exists");
+            //}
 
             await _fileService.UploadFileAsync(formFiles, serverPath);
             return Ok(new { formFiles.Count, Size = SizeConverter(formFiles.Sum(f => f.Length)) });
@@ -67,7 +66,7 @@ public class FileController : ControllerBase
     {
         try
         {
-            var serverPath = GetPathString(subDirectory);
+            var serverPath = GetDirPathString(subDirectory);
 
             string filePath = Path.Combine(serverPath, fileName);
 
@@ -182,76 +181,210 @@ public class FileController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// 1. 오류 처리
+    ///   >> 파라미터가 공백일 경우 
+    /// </summary>
+    /// <param name="queryDirPath"></param>
+    /// <param name="fileFilter"></param>
+    /// <returns></returns>
+    [HttpGet("QueryInFolder")]
+    public IActionResult QueryInFolder( string? queryDirJoin, string? fileFilterJoin)
+    {
+        try
+        {
+            
+            string[]? fileFilter = fileFilterJoin?.Split("?");
+
+            // 서버폴더
+            string serverDirectory = GetDirPathString(queryDirJoin);
+        
+
+            //서버경로가 없어면 오류
+            if (string.IsNullOrEmpty( serverDirectory))
+                return BadRequest("Server Directory is null or empty");
+
+            if (!Directory.Exists(serverDirectory))
+                return BadRequest("Server Directory Not Exists");
+            
+
+            // file search 패턴이 있을 경우 한번에 처리할 방법이 없어서 패턴 별로 파일을 찾차서 List에 추가함
+            List<string> filesPathList = new List<string>();
+            if (fileFilter == null || fileFilter.Length <= 0)
+            {
+                filesPathList.AddRange(Directory.GetFiles(serverDirectory, "*.*"));
+            }
+            else
+            {
+                foreach (var item in fileFilter ?? Enumerable.Empty<string>())
+                {
+                    filesPathList.AddRange(Directory.GetFiles(serverDirectory, item));
+                }
+            }
+
+            // 파일정보 생성: 파일 경로에서 파일명 및 파일 크기 조회
+            var fileList = filesPathList.Select(s => new
+            {
+                fileName = Path.GetFileName(s),
+                fileSize = this.SizeConverter(new FileInfo(s).Length)
+            });
+
+            
+            // 해당 폴더의 폴더 목록
+            var dirs = Directory.GetDirectories(serverDirectory);
+            var dirList = dirs.Select(s => new
+            {
+                dirName = Path.GetFileName(s),
+                updated = new FileInfo(s).LastWriteTime
+            });
+
+            string[]? queryDirPath = queryDirJoin?.Split("?");
+
+            // 반환 값: 조회 한 서버 폴더, 파일목록, 폴더목록
+            return Ok(new { queryDirPath, fileList, dirList });
+            
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+    
+    [HttpGet("CreateFolder")]
+    [Authorize(Roles = "FileAdmin")]
+    public IActionResult CreateFolder(string newFolder, string? serverDirJoin)
+    {
+        try
+        {
+            var serverPath = GetDirPathString(serverDirJoin);
+            
+            if (System.IO.Directory.Exists(Path.Combine(serverPath, newFolder)))
+            {
+                return BadRequest("Server directory already Exists");
+            }
+            System.IO.Directory.CreateDirectory(Path.Combine(serverPath, newFolder));
+
+            return QueryInFolder(serverDirJoin, null);
+        }
+        catch (Exception ex)
+        {
+
+            return BadRequest(ex.Message);
+        }
+
+        //return Ok();
+    }
+
+
     [HttpDelete("DeleteFile")]
-    public IActionResult DeleteFile(string joinPaths)
+    [Authorize(Roles = "FileAdmin")]
+    public IActionResult DeleteFile(string sourceFileName, string? queryDirJoin)
     {
-        var serverPath = GetPathString(joinPaths);
-
-        if (!System.IO.File.Exists(serverPath))
+        try
         {
-            return BadRequest("Server file Not Exists");
+            string serverBackUpPath = Path.Combine(_env.ContentRootPath, "Files_backup");
+            if (!System.IO.Directory.Exists(serverBackUpPath))
+                throw new Exception("Server Backup Directory Not Exists");
+            string bakfilePath = Path.Combine(serverBackUpPath, sourceFileName + '.' + DateTime.Now.ToString("yyyyMMddHHmmss"));
+
+
+            var serverDirPath = GetDirPathString(queryDirJoin);
+            var serverFilePath = Path.Combine(serverDirPath, sourceFileName);
+            if (!System.IO.File.Exists(serverFilePath))
+            {
+                return BadRequest("Server file Not Exists");
+            }
+
+            System.IO.File.Move(serverFilePath, bakfilePath);
+
+            //System.IO.File.Delete(serverFilePath);
+
+            return QueryInFolder(queryDirJoin, null);
         }
-
-        FileAttributes attr = System.IO.File.GetAttributes(serverPath);
-
-
-        if (attr.HasFlag(FileAttributes.Directory))
+        catch (Exception ex)
         {
-            //ClearFolder(serverPath);
-            return BadRequest("This is directory");
 
+            return BadRequest(ex.Message);
         }
-        else
-        {
-            System.IO.File.Delete(serverPath);
-        }
-        return Ok();
     }
 
-    //[Authorize(Roles = "Admin1")]
-    [HttpDelete("DeleteFoler")]
-    public IActionResult DeleteFolder(string joinPaths)
+    [HttpPut("RenameFile")]
+    [Authorize(Roles = "FileAdmin")]
+    public IActionResult RenameFile(string sourceFileName, string moveFileName, string? queryDirJoin  )
     {
-        var serverPath = GetPathString(joinPaths);
+        if(string.IsNullOrEmpty(sourceFileName))
+            return BadRequest("Source file name is empty");
 
-        if (!System.IO.Directory.Exists(serverPath))
+        if(string.IsNullOrEmpty(moveFileName))
+            return BadRequest("Rename file is empty");
+
+        if ( sourceFileName.Equals(moveFileName))
+            return BadRequest("Source file name is equal to rename file");
+
+        try
         {
-            return BadRequest("Server directory Not Exists");
+            var serverDirPath = GetDirPathString(queryDirJoin);
+            var serverFilePath = Path.Combine(serverDirPath, sourceFileName);
+            if (!System.IO.File.Exists(serverFilePath))
+                return BadRequest("Server file Not Exists");
+            
+            var moveFilePath = Path.Combine(serverDirPath, moveFileName);
+            if (System.IO.File.Exists(moveFilePath))
+                return BadRequest("Rename file is already Exists");
+            
+            // Create a FileInfo  
+            System.IO.FileInfo fi = new System.IO.FileInfo(serverFilePath);
+            // Check if file is there  
+            if (fi.Exists)
+            {
+                // Move file with a new name. Hence renamed.  
+                fi.MoveTo(moveFilePath);
+
+                Console.WriteLine("File Renamed.");
+                //    System.IO.File.Delete(serverPath);
+            }
+            return QueryInFolder(queryDirJoin, null);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+            
         }
 
-        FileAttributes attr = System.IO.File.GetAttributes(serverPath);
-        if (attr.HasFlag(FileAttributes.Directory))
-        {
-            //ClearFolder(serverPath);
-            Directory.Delete(serverPath, true);
-        }
-        else
-        {
-            return BadRequest("You request file delete");
-        }
-        return Ok();
     }
 
-    [HttpPost("CreateFolder")]
-    public IActionResult CreateFolder(string newFolder, string? joinPaths)
+    
+    [HttpDelete("DeleteFolder")]
+    [Authorize(Roles = "FileAdmin")]
+    public IActionResult DeleteFolder(string deleteFolder, string? queryDirJoin  )
     {
-        var serverPath = GetPathString(joinPaths);
-
-        if (!System.IO.Directory.Exists(serverPath))
+        try
         {
-            return BadRequest("Server directory Not Exists");
+            string serverBackUpPath = Path.Combine(_env.ContentRootPath, "Files_backup");
+            if (!System.IO.Directory.Exists(serverBackUpPath))
+                throw new Exception("Server Backup Directory Not Exists");
+
+            string bakDirPath = Path.Combine(serverBackUpPath, deleteFolder + '_' + DateTime.Now.ToString("yyyyMMddHHmmss"));
+
+
+            var serverPath = GetDirPathString(queryDirJoin);
+            var deletePath = Path.Combine(serverPath, deleteFolder);
+
+            Directory.Move(deletePath, bakDirPath);
+            //Directory.Delete(deletePath, true);
+
+     
+            return QueryInFolder(queryDirJoin, null);
+
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
         }
 
-        if (System.IO.Directory.Exists(Path.Combine(serverPath, newFolder)))
-        {
-            return BadRequest("Server directory already Exists");
-        }
-        System.IO.Directory.CreateDirectory(Path.Combine(serverPath, newFolder));
-
-
-        return Ok();
     }
 
+    
 
     private string SizeConverter(long bytes)
     {
@@ -274,7 +407,7 @@ public class FileController : ControllerBase
                 return "n/a";
         }
     }
-    private string GetPathString(string? joinPaths)
+    private string GetPathString_bak(string? joinPaths)
     {
         var splitPaths = joinPaths?.Split('?');
         //var splitPaths = joinPaths?.Split(':');
@@ -293,6 +426,44 @@ public class FileController : ControllerBase
             serverPath = Path.Combine(_env.ContentRootPath, "Files", fromRootPath);
 
         return serverPath;
+    }
+
+    /// <summary>
+    /// 해당 폴더가 있는지 점검
+    /// </summary>
+    /// <param name="queryDirPath"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    private string GetDirPathString(string? queryDirPath)
+    {
+        var splitPaths = queryDirPath?.Split('?');
+        
+        // 조회할 폴더 파라미터가 공백일 경우 오류
+        foreach (var item in splitPaths ?? Enumerable.Empty<string>())
+        {
+            if (string.IsNullOrEmpty(item))
+                throw new Exception ("Server Directory is empty");
+        }
+
+        string? fromRootPath = null;
+        foreach (string path in splitPaths ?? Enumerable.Empty<string>())
+        {
+            fromRootPath = Path.Combine(fromRootPath ?? string.Empty, path);
+        }
+        string serverPath = Path.Combine(_env.ContentRootPath, "Files", fromRootPath ?? string.Empty);
+
+        if (!System.IO.Directory.Exists(serverPath))
+            throw new Exception("Server Directory Not Exists");
+        //    return BadRequest("Server directory Not Exists");
+
+
+        return Path.Combine(_env.ContentRootPath, "Files", fromRootPath ?? string.Empty );
+        
+        //if (fromRootPath == null)
+        //    return Path.Combine(_env.ContentRootPath, "Files");
+        //else
+        //    return Path.Combine(_env.ContentRootPath, "Files", fromRootPath);
+
     }
 
 
@@ -314,22 +485,108 @@ public class FileController : ControllerBase
     //    return base.Content(html, "text/html");
     //}
     #region Test 
+    [HttpGet("test122")]
+    public IActionResult QueryInFolder_bak(string? queryDirJoin, string? fileFilterJoin)
+    {
+        try
+        {
+            string[]? queryDirPath = queryDirJoin?.Split("?");
+            string[]? fileFilter = fileFilterJoin?.Split("?");
 
+            // 서버 파일관리 폴더 Root 
+            string serverDirectory = Path.Combine(_env.ContentRootPath, "Files");
+
+            // 조회할 폴더 파라미터가 공백일 경우 오류
+            foreach (var item in queryDirPath ?? Enumerable.Empty<string>())
+            {
+                if (string.IsNullOrEmpty(item))
+                    return BadRequest("Server Directory is empty");
+            }
+            // 조회할 파일 필터가 파라미터가 공백일 경우 오류
+            foreach (var item in fileFilter ?? Enumerable.Empty<string>())
+            {
+                if (string.IsNullOrEmpty(item))
+                    return BadRequest("Search pattern is empty");
+            }
+
+            // 조회할 폴더 string :  서버 root폴더 + 파라미터
+            foreach (var item in queryDirPath ?? Enumerable.Empty<string>())
+            {
+                if (string.IsNullOrEmpty(item)) continue;
+                serverDirectory = Path.Combine(serverDirectory ?? string.Empty, item);
+            }
+
+            //서버경로가 없어면 오류
+            if (serverDirectory == null)
+                return BadRequest("Server Directory1 Not Exists");
+
+            if (!Directory.Exists(serverDirectory))
+                return BadRequest("Server Directory2 Not Exists");
+
+
+            // file search 패턴이 있을 경우 한번에 처리할 방법이 없어서 패턴 별로 파일을 찾차서 List에 추가함
+            List<string> filesPathList = new List<string>();
+            if (fileFilter == null || fileFilter.Length <= 0)
+            {
+                filesPathList.AddRange(Directory.GetFiles(serverDirectory, "*.*"));
+            }
+            else
+            {
+                foreach (var item in fileFilter ?? Enumerable.Empty<string>())
+                {
+                    filesPathList.AddRange(Directory.GetFiles(serverDirectory, item));
+                }
+            }
+
+            // 파일정보 생성: 파일 경로에서 파일명 및 파일 크기 조회
+            var fileList = filesPathList.Select(s => new
+            {
+                fileName = Path.GetFileName(s),
+                fileSize = this.SizeConverter(new FileInfo(s).Length)
+            });
+
+
+            // 해당 폴더의 폴더 목록
+            var dirs = Directory.GetDirectories(serverDirectory);
+            var dirList = dirs.Select(s => new
+            {
+                dirName = Path.GetFileName(s),
+                updated = new FileInfo(s).LastWriteTime
+            });
+
+            // 반환 값: 조회 한 서버 폴더, 파일목록, 폴더목록
+            return Ok(new { queryDirPath, fileList, dirList });
+
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
     [HttpGet("GetPdf")]
     public async Task<IActionResult> GetPdfAsync([Required] string fileName, string? subDirectory)
     {
-        var serverPath = GetPathString(subDirectory);
+        try
+        {
+            var serverPath = GetDirPathString(subDirectory);
 
-        string filePath = Path.Combine(serverPath, fileName);
+            string filePath = Path.Combine(serverPath, fileName);
 
-        if (!System.IO.File.Exists(filePath))
-            return BadRequest();
+            if (!System.IO.File.Exists(filePath))
+                return BadRequest();
 
-        var ms = await _fileService.DownloadFileAsync(fileName, serverPath);
-        //return new FileStreamResult(ms, "application/pdf");
+            var ms = await _fileService.DownloadFileAsync(fileName, serverPath);
+            //return new FileStreamResult(ms, "application/pdf");
 
 
-        return new FileStreamResult(ms, GetContentType(fileName));
+            return new FileStreamResult(ms, GetContentType(fileName));
+        }
+        catch (Exception ex)
+        {
+            return Problem(detail: ex.Message, title: ex.HResult.ToString());
+            
+        }
+
 
         //var bytes = System.IO.File.ReadAllBytes(filePath);
         //return new FileContentResult(bytes, "application/pdf");
@@ -337,19 +594,28 @@ public class FileController : ControllerBase
     [HttpGet("GetDoc2")]
     public async Task<IActionResult> GetDoc2Async([Required] string fileName, string? subDirectory)
     {
-        var serverPath = GetPathString(subDirectory);
+        try
+        {
+            var serverPath = GetDirPathString(subDirectory);
 
-        string filePath = Path.Combine(serverPath, fileName);
+            string filePath = Path.Combine(serverPath, fileName);
 
-        if (!System.IO.File.Exists(filePath))
-            return BadRequest();
+            if (!System.IO.File.Exists(filePath))
+                return BadRequest();
 
-        //var ms = await _fileService.DownloadFileAsync(fileName, serverPath);
+            //var ms = await _fileService.DownloadFileAsync(fileName, serverPath);
 
-        //return new FileStreamResult(ms, GetContentType(fileName))  ;
+            //return new FileStreamResult(ms, GetContentType(fileName))  ;
 
-        byte[] bytes = System.IO.File.ReadAllBytes(filePath );
-        return File(bytes, GetContentType(fileName),true );
+            byte[] bytes = System.IO.File.ReadAllBytes(filePath);
+            return File(bytes, GetContentType(fileName), true);
+        }
+        catch (Exception ex)
+        {
+            return Problem(detail: ex.Message, title: ex.HResult.ToString());
+            
+        }
+
 
     }
 

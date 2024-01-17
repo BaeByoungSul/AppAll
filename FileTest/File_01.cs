@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using Services.FileService;
 using CommonLib;
+using System.IO.Ports;
 
 
 namespace FileTest
@@ -137,6 +138,65 @@ namespace FileTest
             this.progBar_t1_2.Value = (int)value;
         }
 
-        
+        private void button1_Click(object sender, EventArgs e)
+        {
+            var _serialPort = new SerialPort();
+
+            _serialPort.PortName = "COM3";
+            _serialPort.BaudRate = 9600;
+            _serialPort.Parity = Parity.None;
+            _serialPort.DataBits = 8;
+            _serialPort.Handshake = Handshake.XOnXOff;
+
+            _serialPort.Open();
+
+            string _zplString = string.Empty;
+
+            if(cbo1.SelectedIndex == 0)
+            {
+                _zplString = "^XA^FO10,10^MD30" +
+               "^BXN,6,200" +
+               "^FH_" +
+               "^FD[)> _1E06_1D안녕하세요_1D배병술_1D_장가항_1D" +
+               "An EOT is often used to initiate other functions, " +
+               "such as releasing circuits, disconnecting terminals, " +
+               "or placing receive terminals in a standby_1D_1E_04" +
+               "^FS" +
+               "^XZ";
+
+
+            }
+            else if (cbo1.SelectedIndex == 1)
+            {
+                _zplString = "^XA^FO10,10^MD30" +
+               "^BQN,2,6" +
+               "^FH_" +
+               "^FD[)> _1E06_1D안녕하세요_1D배병술_1D_장가항_1D" +
+               "An EOT is often used to initiate other functions, " +
+               "such as releasing circuits, disconnecting terminals, " +
+               "or placing receive terminals in a standby_1D_1E_04" +
+               "^FS" +
+               "^XZ";
+
+            }
+            else
+            {
+                return;
+            }
+
+
+            //_zplString = "^XA^FO10,10^MD30" +
+            //               "^BXN,6,200" +
+            //               "^FH_^FD[)> _1E06_1D안녕하세요_1D배병술_1D_장가항_1D" +
+            //               "An EOT is often used to initiate other functions, " +
+            //               "such as releasing circuits, disconnecting terminals, " +
+            //               "or placing receive terminals in a standby_1D_1E_04^FS^XZ";
+
+
+            //_serialPort.Open();
+            _serialPort.Write(_zplString);
+            _serialPort.Close();
+
+        }
     }
 }

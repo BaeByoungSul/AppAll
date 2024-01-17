@@ -4,7 +4,8 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 ## 폴더 무시 ( 2023.10.10 )
-MyWebApi/Files
+MyWebApi/Files/
+MyWebApi/Files_backup/
 
 # User-specific files
 *.rsuser
