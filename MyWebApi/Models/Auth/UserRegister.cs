@@ -15,6 +15,8 @@ public class UserRegister
     public string? FirstName { get; set; } 
     public string? LastName { get; set; }
     public string? DisplayName { get; set; }
+
+    public string VerifyUserUrl { get; set  ;} = string.Empty;
 }
     
 

@@ -6,6 +6,8 @@ using Microsoft.IdentityModel.Tokens;
 using Services.FileService;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
+using System.IO.Compression;
+using System.Net.Http.Headers;
 
 namespace MyWebApi.Controllers;
 
@@ -22,6 +24,14 @@ public class FileController : ControllerBase
     {
         _env = environment;
         _fileService = fileService;
+        // 기본 directory가 없어면 생성
+        if (!Directory.Exists(Path.Combine(_env.ContentRootPath, "Files")))
+            Directory.CreateDirectory(Path.Combine(_env.ContentRootPath, "Files"));
+
+        if (!Directory.Exists(Path.Combine(_env.ContentRootPath, "Files_backup")))
+            Directory.CreateDirectory(Path.Combine(_env.ContentRootPath, "Files_backup"));
+
+        Console.WriteLine("file controller");
     }
 
     private static string GetContentType( string fileName)
@@ -34,24 +44,23 @@ public class FileController : ControllerBase
     /// subdirectory path : dir1?dir2?dir3 늘 ?로 병합이 되어 argument로 넘어온다
     /// </summary>
     /// <returns></returns>
-    [HttpPost("UploadFile"),
-        DisableRequestSizeLimit,
-        RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue)]
+    //[DisableRequestSizeLimit]
+    //[RequestFormLimits(MultipartBodyLengthLimit = Int32.MaxValue)]
+    [HttpPost("UploadFile")]
+    [RequestSizeLimit(314_572_800)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 314_572_800)]
+
     public async Task<IActionResult> UploadFile([Required] List<IFormFile> formFiles, string? subDirectory)
     {
         try
         {
             // 기본 directory가 없어면 생성
             if (!Directory.Exists(Path.Combine(_env.ContentRootPath, "Files")))
-            {
                 Directory.CreateDirectory(Path.Combine(_env.ContentRootPath, "Files"));
-            }
+            
             var serverPath = GetDirPathString(subDirectory);
 
-            //if (!Directory.Exists(serverPath))
-            //{
-            //    return BadRequest("Server Directory Not Exists");
-            //}
+
 
             await _fileService.UploadFileAsync(formFiles, serverPath);
             return Ok(new { formFiles.Count, Size = SizeConverter(formFiles.Sum(f => f.Length)) });
@@ -93,6 +102,104 @@ public class FileController : ControllerBase
             //return BadRequest(ex.Message);
         }
     }
+
+
+    //https://www.c-sharpcorner.com/article/downloading-files-in-zip-format-in-net-core-web-api/
+
+    [HttpGet("DownloadFileZip"), DisableRequestSizeLimit]
+    public async Task<IActionResult> DownloadFileZip([Required]string FilesJoin, string? subDirectory)
+    {
+        
+        try
+        {
+            //Enumerable.Empty<Dictionary<string, string>>()
+            var serverPath = GetDirPathString(subDirectory);
+
+            string[]? files = FilesJoin?.Split("?");
+
+            if(files == null) return BadRequest();
+            if(files.Length == 0) return BadRequest();  
+
+            foreach (var file in files ?? Enumerable.Empty<string> ())
+            {
+                string filePath = Path.Combine(serverPath, file);
+
+                if (!System.IO.File.Exists(filePath))
+                    return NotFound("No file found to download.");
+            }
+
+
+            // Create a temporary memory stream to hold the zip archive
+            using (var memoryStream = new MemoryStream())
+            {
+                // Create a new zip archive
+                using (var zipArchive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+                {
+                    foreach (var file in files ?? Enumerable.Empty<string>())
+                    {
+                        string filePath = Path.Combine(serverPath, file);
+
+                        var fileInfo = new FileInfo(filePath);
+
+                        // Create a new entry in the zip archive for each file
+                        var entry = zipArchive.CreateEntry(fileInfo.Name);
+
+                        // Write the file contents into the entry
+                        using (var entryStream = entry.Open())
+                        using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+                        {
+                            await fileStream.CopyToAsync(entryStream);
+                            //fileStream.CopyTo(entryStream);
+                        }
+                    }
+                }
+
+                memoryStream.Seek(0, SeekOrigin.Begin);
+
+                var zipfileName = "zipfile_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".zip";
+                // Return the zip file as a byte array
+                return File(memoryStream.ToArray(), "application/zip", zipfileName);
+            }
+
+            //return new FileStreamResult(memory, GetContentType(fileName))
+            //{
+            //    FileDownloadName = fileName
+            //} ;
+
+            //return File(memory, "application/msword", fileName); // attachment
+            //return File(memory, "application/octet-stream"); // inline
+
+        }
+        catch (Exception ex)
+        {
+            //return Problem(detail: ex.Message, title: ex.HResult.ToString());
+            return StatusCode(500, $"An error occurred: {ex.Message}");
+            //return BadRequest(ex.Message);
+        }
+    }
+    //[Route("downloadzip")]
+    //public async Task<IActionResult> DownloadTheZipFile()
+    //{
+    //    List<string> files = new List<string>
+    //{
+    //    "first/file.txt",
+    //    "second/file.txt"
+    //};
+
+    //    using (var memoryStream = new MemoryStream())
+    //    {
+    //        using (var zipArchive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+    //        {
+    //            foreach (var file in files)
+    //            {
+    //                zipArchive.CreateEntryFromFile(file, Path.GetFileName(file));
+    //            }
+    //        }
+
+    //        memoryStream.Position = 0;
+    //        return File(memoryStream, "application/zip", "my.zip");
+    //    }
+    //}
 
     /// <summary>
     /// return: file list in directory, sub directory list in directory
@@ -226,6 +333,11 @@ public class FileController : ControllerBase
             }
             else
             {
+                //foreach (var item in fileFilter ?? Enumerable.Empty<string>())
+                //{
+                //    filesPathList.AddRange(Directory.GetFiles(serverDirectory, item));
+                //}
+
                 foreach (var item in fileFilter ?? Enumerable.Empty<string>())
                 {
                     //filesPathList.AddRange(Directory.GetFiles(serverDirectory, item));
@@ -302,7 +414,10 @@ public class FileController : ControllerBase
         {
             string serverBackUpPath = Path.Combine(_env.ContentRootPath, "Files_backup");
             if (!System.IO.Directory.Exists(serverBackUpPath))
-                throw new Exception("Server Backup Directory Not Exists");
+                Directory.CreateDirectory(serverBackUpPath);
+
+            //if (!System.IO.Directory.Exists(serverBackUpPath))
+            //    throw new Exception("Server Backup Directory Not Exists");
             string bakfilePath = Path.Combine(serverBackUpPath, sourceFileName + '.' + DateTime.Now.ToString("yyyyMMddHHmmss"));
 
 
@@ -379,8 +494,11 @@ public class FileController : ControllerBase
         try
         {
             string serverBackUpPath = Path.Combine(_env.ContentRootPath, "Files_backup");
+            
             if (!System.IO.Directory.Exists(serverBackUpPath))
-                throw new Exception("Server Backup Directory Not Exists");
+                Directory.CreateDirectory(serverBackUpPath);
+            
+                //throw new Exception("Server Backup Directory Not Exists");
 
             string bakDirPath = Path.Combine(serverBackUpPath, deleteFolder + '_' + DateTime.Now.ToString("yyyyMMddHHmmss"));
 
@@ -681,10 +799,43 @@ public class FileController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+
+
+    //[HttpPost("TestUpload")]
+    //[RequestFormLimits(MultipartBodyLengthLimit = 314_572_800)]
+    //[RequestSizeLimit(314_572_800)]
+    //public async Task<IActionResult> Post(List<IFormFile> formFiles, string? subDirectory)
+    //{
+    //    // 기본 directory가 없어면 생성
+    //    if (!Directory.Exists(Path.Combine(_env.ContentRootPath, "Files")))
+    //    {
+    //        Directory.CreateDirectory(Path.Combine(_env.ContentRootPath, "Files"));
+    //    }
+    //    var uploadFolder = GetDirPathString(subDirectory);
+
+    //    //var uploadFolder = Path.Combine(_environment.WebRootPath, "files");
+
+    //    foreach (var file in formFiles)
+    //    {
+    //        if (file.Length > 0)
+    //        {
+    //            var fileName = Path.GetFileName(ContentDispositionHeaderValue.Parse(file.ContentDisposition).FileName.Trim('"'));
+
+    //            using (var fileStream = new FileStream(Path.Combine(uploadFolder, fileName), FileMode.Create))
+    //            {
+    //                await file.CopyToAsync(fileStream);
+    //            }
+    //        }
+    //    }
+
+    //    return Ok(new { message = "OK" });
+    //}
     #endregion Test
 
+
+
 }
-public class DocxModel
-{
-    public byte[] testDocx { get; set; }
-}
+//public class DocxModel
+//{
+//    public byte[] testDocx { get; set; }
+//}

@@ -26,7 +26,6 @@ builder.WebHost.ConfigureKestrel(opts =>
 });
 
 // Add services to the container.
-
 builder.Services
     .AddControllers()
     .AddNewtonsoftJson(opt =>
@@ -47,10 +46,10 @@ var jwtConfig = builder.Configuration
         .Get<JwtConfig>();
 builder.Services.AddSingleton(jwtConfig);
 
-var angularConfig = builder.Configuration
-        .GetSection("AngularApp")
-        .Get<AngularConfig>();
-builder.Services.AddSingleton(angularConfig);
+//var angularConfig = builder.Configuration
+//        .GetSection("AngularApp")
+//        .Get<AngularConfig>();
+//builder.Services.AddSingleton(angularConfig);
 
 
 //ClockSkew: 토큰 만기 시간이 지켜지지 않아서 추가..(from stackOverflow )
@@ -115,13 +114,25 @@ app.UseSwaggerUI();
 */
 
 
-
 // 2023.01.31. angular에서 header를 가져오지 못해서..Content-Disposition 추가
-app.UseCors(policy => policy.AllowAnyOrigin()
-                            .AllowAnyMethod()
-                            .AllowAnyHeader()
-                            .WithExposedHeaders("Content-Disposition"));
+// 2024.02.02. AllowAnyOrigin >> WithOrigins
+var settingOrigins = builder.Configuration.GetValue<string>("AllowedOrigins");
+Console.WriteLine(settingOrigins);
+if (!settingOrigins.IsNullOrEmpty())
+{
+    var origins  = settingOrigins.Split(';');
+    app.UseCors(policy => policy.WithOrigins(origins)
+                                .AllowAnyMethod()
+                                .AllowAnyHeader()
+                                .WithExposedHeaders("Content-Disposition"));
 
+}
+//app.UseCors(policy => policy.AllowAnyOrigin()
+//                            .AllowAnyMethod()
+//                            .AllowAnyHeader()
+//                            .WithExposedHeaders("Content-Disposition"));
+
+// https가 구성되지 않으면 필요없음
 app.UseHttpsRedirection();
 
 app.UseAuthentication();

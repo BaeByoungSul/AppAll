@@ -23,22 +23,79 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
     private readonly IEmailService _emailService;
-    private readonly AngularConfig _angularconfig;
+    //private readonly AngularConfig _angularconfig;
     private readonly JwtTokenService _jwtTokenService;
 
     public AuthController(
         IAuthService authService,
         IEmailService emailService,
-        JwtTokenService jwtTokenService,
-        AngularConfig angularConfig)
+        JwtTokenService jwtTokenService)
+        //AngularConfig angularConfig)
     {
         _authService = authService;
         _emailService = emailService;
-        _angularconfig = angularConfig; 
+        //_angularconfig = angularConfig; 
         
         _jwtTokenService = jwtTokenService;
     }
 
+    
+    [HttpPost("Login")]
+    public IActionResult Login(UserLogin _userData)
+    {
+        if (_userData == null ||
+            _userData.Email == null ||
+            _userData.Password == null)
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var user = _authService.GetUserByEmail(_userData.Email);
+            if (user == null)
+            {
+                return BadRequest("Unregistered email ");
+                //return Unauthorized("Unregistered email");
+            }
+            if (!_authService.VerifyPasswordHash(_userData.Password, user.PasswordHash, user.PasswordSalt))
+            {
+                return BadRequest("Password is incorrect ");
+            }
+
+            //var user = _authService.Login(_userData.Email, _userData.Password);
+
+            //var token = CreateToken(user);
+            var accessToken = _jwtTokenService.CreateToken(user);
+            var refreshToken = _jwtTokenService.GenerateRefreshToken();
+
+            user.RefreshToken = refreshToken.Token;
+            user.RefreshTokenExpiryTime = refreshToken.Expires;
+
+            _authService.UpdateRefreshToken(user);
+            // SetRefreshToken(refreshToken);
+
+            //return Ok(new
+            //{
+            //    AccessToken = accessToken,
+            //    RefreshToken = refreshToken,
+            //    UserHome = user.UserHome??string.Empty
+            //});
+
+            return Ok(new
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken
+            });
+
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+            //throw;
+        }
+
+    }
     [HttpPost("RegisterUser")]
     public IActionResult RegisterUser(UserRegister model)
     {
@@ -67,7 +124,8 @@ public class AuthController : ControllerBase
             //        , param
             //        , Request.Scheme);
             //var callback = QueryHelpers.AddQueryString("http://localhost:4200/auth/verify-user", param);
-            var callback = QueryHelpers.AddQueryString(_angularconfig.UserVerifyUrl, param);
+            //var callback = QueryHelpers.AddQueryString(_angularconfig.UserVerifyUrl, param);
+            var callback = QueryHelpers.AddQueryString(model.VerifyUserUrl, param);
 
             EmailDto emailContent = new EmailDto();
             emailContent.Subject = "Veryfy User Register Email";
@@ -135,60 +193,9 @@ public class AuthController : ControllerBase
 
     }
 
-    [HttpPost("Login")]
-    public IActionResult Login(UserLogin _userData)
-    {
-        if (_userData == null ||
-            _userData.Email == null ||
-            _userData.Password == null)
-        {
-            return Unauthorized();
-        }
-
-        try
-        {
-            var user = _authService.GetUserByEmail(_userData.Email);
-            if (user == null)
-            {
-                return BadRequest("Unregistered email ");
-                //return Unauthorized("Unregistered email");
-            }
-            if (!_authService.VerifyPasswordHash(_userData.Password, user.PasswordHash, user.PasswordSalt))
-            {
-                return BadRequest("Password is incorrect ");
-            }
-
-            //var user = _authService.Login(_userData.Email, _userData.Password);
-
-            //var token = CreateToken(user);
-            var accessToken = _jwtTokenService.CreateToken(user);
-            var refreshToken = _jwtTokenService.GenerateRefreshToken();
-
-            user.RefreshToken = refreshToken.Token;
-            user.RefreshTokenExpiryTime = refreshToken.Expires;
-
-            _authService.UpdateRefreshToken(user);
-            // SetRefreshToken(refreshToken);
-
-            return Ok(new
-            {
-                AccessToken = accessToken,
-                RefreshToken = refreshToken,
-                UserHome = user.UserHome??string.Empty
-            });
-
-
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-            //throw;
-        }
-
-    }
 
     [HttpPost("ForgotPassword")]
-    public IActionResult ForgotPassword(string email)
+    public IActionResult ForgotPassword(string email, string resetPasswordUrl)
     {
         try
         {
@@ -207,7 +214,8 @@ public class AuthController : ControllerBase
 
             //var callback = QueryHelpers.AddQueryString("http://localhost:4200/auth/reset-password", param);
 
-            var callback = QueryHelpers.AddQueryString(_angularconfig.ResetPasswordUrl, param);
+            //var callback = QueryHelpers.AddQueryString(_angularconfig.ResetPasswordUrl, param);
+            var callback = QueryHelpers.AddQueryString(resetPasswordUrl, param);
 
             EmailDto emailContent = new EmailDto();
             emailContent.Subject = "Reset password email";

@@ -8,10 +8,29 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Files1\**" />
+    <Compile Remove="Files\**" />
+    <Compile Remove="Files_backup1\**" />
+    <Compile Remove="Files_backup\**" />
+    <Content Remove="Files1\**" />
+    <Content Remove="Files\**" />
+    <Content Remove="Files_backup1\**" />
+    <Content Remove="Files_backup\**" />
+    <EmbeddedResource Remove="Files1\**" />
+    <EmbeddedResource Remove="Files\**" />
+    <EmbeddedResource Remove="Files_backup1\**" />
+    <EmbeddedResource Remove="Files_backup\**" />
+    <None Remove="Files1\**" />
+    <None Remove="Files\**" />
+    <None Remove="Files_backup1\**" />
+    <None Remove="Files_backup\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="MailKit" Version="4.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.16" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="6.0.16" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.1" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.5" />
     <PackageReference Include="MySql.Data" Version="8.0.33" />
     <PackageReference Include="OpenAI" Version="1.7.2" />
     <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="3.21.100" />
